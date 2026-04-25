@@ -1,0 +1,336 @@
+{
+  "page": {
+    "id": "wpr1m9glq60g",
+    "name": "Anthropic",
+    "url": "https://status.claude.com",
+    "time_zone": "America/Los_Angeles",
+    "updated_at": "2026-04-25T20:30:00.000-07:00"
+  },
+  "status": {
+    "indicator": "minor",
+    "description": "Partial Service Disruption"
+  },
+  "components": [
+    {
+      "id": "grp_claude_ai",
+      "name": "Claude.ai",
+      "status": "operational",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-04-25T20:30:00.000Z",
+      "position": 1,
+      "description": "Consumer Claude apps",
+      "showcase": true,
+      "group_id": null,
+      "page_id": "wpr1m9glq60g",
+      "group": true,
+      "only_show_if_degraded": false
+    },
+    {
+      "id": "cmp_claudeai_web",
+      "name": "claude.ai Web App",
+      "status": "operational",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-04-25T20:30:00.000Z",
+      "position": 1,
+      "description": null,
+      "showcase": false,
+      "group_id": "grp_claude_ai",
+      "page_id": "wpr1m9glq60g",
+      "group": false,
+      "only_show_if_degraded": false
+    },
+    {
+      "id": "cmp_claudeai_ios",
+      "name": "Claude iOS app",
+      "status": "operational",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-04-25T20:30:00.000Z",
+      "position": 2,
+      "description": null,
+      "showcase": false,
+      "group_id": "grp_claude_ai",
+      "page_id": "wpr1m9glq60g",
+      "group": false,
+      "only_show_if_degraded": false
+    },
+    {
+      "id": "cmp_claudeai_android",
+      "name": "Claude Android app",
+      "status": "operational",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-04-25T20:30:00.000Z",
+      "position": 3,
+      "description": null,
+      "showcase": false,
+      "group_id": "grp_claude_ai",
+      "page_id": "wpr1m9glq60g",
+      "group": false,
+      "only_show_if_degraded": false
+    },
+    {
+      "id": "grp_anthropic_api",
+      "name": "Anthropic API",
+      "status": "degraded_performance",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-04-25T20:30:00.000Z",
+      "position": 2,
+      "description": "Developer-facing Claude API",
+      "showcase": true,
+      "group_id": null,
+      "page_id": "wpr1m9glq60g",
+      "group": true,
+      "only_show_if_degraded": false
+    },
+    {
+      "id": "cmp_api_messages",
+      "name": "api.anthropic.com – Messages",
+      "status": "degraded_performance",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-04-25T20:30:00.000Z",
+      "position": 1,
+      "description": null,
+      "showcase": false,
+      "group_id": "grp_anthropic_api",
+      "page_id": "wpr1m9glq60g",
+      "group": false,
+      "only_show_if_degraded": false
+    },
+    {
+      "id": "cmp_api_workbench",
+      "name": "console.anthropic.com",
+      "status": "operational",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-04-25T20:30:00.000Z",
+      "position": 2,
+      "description": null,
+      "showcase": false,
+      "group_id": "grp_anthropic_api",
+      "page_id": "wpr1m9glq60g",
+      "group": false,
+      "only_show_if_degraded": false
+    },
+    {
+      "id": "cmp_anthropic_com",
+      "name": "anthropic.com",
+      "status": "operational",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-04-25T20:30:00.000Z",
+      "position": 3,
+      "description": "Marketing site",
+      "showcase": false,
+      "group_id": null,
+      "page_id": "wpr1m9glq60g",
+      "group": false,
+      "only_show_if_degraded": false
+    }
+  ],
+  "incidents": [
+    {
+      "id": "inc_today_1",
+      "name": "Elevated error rate on api.anthropic.com",
+      "status": "monitoring",
+      "created_at": "2026-04-25T14:02:00.000Z",
+      "updated_at": "2026-04-25T15:10:00.000Z",
+      "monitoring_at": "2026-04-25T15:10:00.000Z",
+      "resolved_at": null,
+      "impact": "minor",
+      "shortlink": "https://stspg.io/inc1",
+      "started_at": "2026-04-25T14:02:00.000Z",
+      "page_id": "wpr1m9glq60g",
+      "incident_updates": [
+        {
+          "id": "u_today_1_3",
+          "status": "monitoring",
+          "body": "A fix has been deployed and we are monitoring the results.",
+          "incident_id": "inc_today_1",
+          "created_at": "2026-04-25T15:10:00.000Z",
+          "display_at": "2026-04-25T15:10:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        },
+        {
+          "id": "u_today_1_2",
+          "status": "identified",
+          "body": "The issue has been identified — a recently deployed model router. Rolling back.",
+          "incident_id": "inc_today_1",
+          "created_at": "2026-04-25T14:31:00.000Z",
+          "display_at": "2026-04-25T14:31:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        },
+        {
+          "id": "u_today_1_1",
+          "status": "investigating",
+          "body": "We are investigating elevated error rates on Messages requests for a subset of customers.",
+          "incident_id": "inc_today_1",
+          "created_at": "2026-04-25T14:02:00.000Z",
+          "display_at": "2026-04-25T14:02:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        }
+      ],
+      "components": [
+        { "id": "cmp_api_messages", "name": "api.anthropic.com – Messages", "status": "degraded_performance" }
+      ]
+    }
+  ],
+  "scheduled_maintenances": [
+    {
+      "id": "mnt_upcoming_1",
+      "name": "Database failover drill",
+      "status": "scheduled",
+      "created_at": "2026-04-23T18:00:00.000Z",
+      "updated_at": "2026-04-23T18:00:00.000Z",
+      "monitoring_at": null,
+      "resolved_at": null,
+      "impact": "maintenance",
+      "shortlink": "https://stspg.io/mnt1",
+      "started_at": "2026-04-27T07:00:00.000Z",
+      "page_id": "wpr1m9glq60g",
+      "scheduled_for": "2026-04-27T07:00:00.000Z",
+      "scheduled_until": "2026-04-27T07:30:00.000Z",
+      "incident_updates": [
+        {
+          "id": "u_mnt_1",
+          "status": "scheduled",
+          "body": "Brief failover drill. We expect no customer-visible impact.",
+          "incident_id": "mnt_upcoming_1",
+          "created_at": "2026-04-23T18:00:00.000Z",
+          "display_at": "2026-04-23T18:00:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        }
+      ],
+      "components": [
+        { "id": "cmp_api_messages", "name": "api.anthropic.com – Messages", "status": "operational" }
+      ]
+    }
+  ],
+  "past_incidents": [
+    {
+      "id": "inc_past_1",
+      "name": "Major outage – claude.ai",
+      "status": "resolved",
+      "created_at": "2026-04-24T13:02:00.000Z",
+      "updated_at": "2026-04-24T14:55:00.000Z",
+      "monitoring_at": "2026-04-24T14:21:00.000Z",
+      "resolved_at": "2026-04-24T14:55:00.000Z",
+      "impact": "major",
+      "shortlink": "https://stspg.io/incpast1",
+      "started_at": "2026-04-24T13:02:00.000Z",
+      "page_id": "wpr1m9glq60g",
+      "incident_updates": [
+        {
+          "id": "u_past_1_4",
+          "status": "resolved",
+          "body": "Service has been fully restored. We apologize for the disruption.",
+          "incident_id": "inc_past_1",
+          "created_at": "2026-04-24T14:55:00.000Z",
+          "display_at": "2026-04-24T14:55:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        },
+        {
+          "id": "u_past_1_3",
+          "status": "monitoring",
+          "body": "A rollback completed successfully, monitoring recovery.",
+          "incident_id": "inc_past_1",
+          "created_at": "2026-04-24T14:21:00.000Z",
+          "display_at": "2026-04-24T14:21:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        },
+        {
+          "id": "u_past_1_2",
+          "status": "identified",
+          "body": "We identified a bad deploy that's affecting claude.ai. Rolling back now.",
+          "incident_id": "inc_past_1",
+          "created_at": "2026-04-24T13:14:00.000Z",
+          "display_at": "2026-04-24T13:14:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        },
+        {
+          "id": "u_past_1_1",
+          "status": "investigating",
+          "body": "We are investigating reports of widespread errors on claude.ai.",
+          "incident_id": "inc_past_1",
+          "created_at": "2026-04-24T13:02:00.000Z",
+          "display_at": "2026-04-24T13:02:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        }
+      ],
+      "components": [
+        { "id": "cmp_claudeai_web", "name": "claude.ai Web App", "status": "operational" },
+        { "id": "cmp_api_messages", "name": "api.anthropic.com – Messages", "status": "operational" }
+      ]
+    },
+    {
+      "id": "inc_past_2",
+      "name": "Increased latency on Messages",
+      "status": "resolved",
+      "created_at": "2026-04-22T09:11:00.000Z",
+      "updated_at": "2026-04-22T10:45:00.000Z",
+      "monitoring_at": "2026-04-22T10:20:00.000Z",
+      "resolved_at": "2026-04-22T10:45:00.000Z",
+      "impact": "minor",
+      "shortlink": "https://stspg.io/incpast2",
+      "started_at": "2026-04-22T09:11:00.000Z",
+      "page_id": "wpr1m9glq60g",
+      "incident_updates": [
+        {
+          "id": "u_past_2_2",
+          "status": "resolved",
+          "body": "Latency has returned to baseline.",
+          "incident_id": "inc_past_2",
+          "created_at": "2026-04-22T10:45:00.000Z",
+          "display_at": "2026-04-22T10:45:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        },
+        {
+          "id": "u_past_2_1",
+          "status": "investigating",
+          "body": "We are seeing elevated p95 latency on Messages.",
+          "incident_id": "inc_past_2",
+          "created_at": "2026-04-22T09:11:00.000Z",
+          "display_at": "2026-04-22T09:11:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        }
+      ],
+      "components": [
+        { "id": "cmp_api_messages", "name": "api.anthropic.com – Messages", "status": "operational" }
+      ]
+    },
+    {
+      "id": "inc_past_3",
+      "name": "Console authentication issue",
+      "status": "resolved",
+      "created_at": "2026-04-10T18:30:00.000Z",
+      "updated_at": "2026-04-10T19:05:00.000Z",
+      "monitoring_at": null,
+      "resolved_at": "2026-04-10T19:05:00.000Z",
+      "impact": "minor",
+      "shortlink": "https://stspg.io/incpast3",
+      "started_at": "2026-04-10T18:30:00.000Z",
+      "page_id": "wpr1m9glq60g",
+      "incident_updates": [
+        {
+          "id": "u_past_3_1",
+          "status": "resolved",
+          "body": "Resolved a brief authentication issue affecting console.anthropic.com.",
+          "incident_id": "inc_past_3",
+          "created_at": "2026-04-10T19:05:00.000Z",
+          "display_at": "2026-04-10T19:05:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        }
+      ],
+      "components": [
+        { "id": "cmp_api_workbench", "name": "console.anthropic.com", "status": "operational" }
+      ]
+    }
+  ]
+}

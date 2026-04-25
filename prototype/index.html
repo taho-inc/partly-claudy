@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>claude-status — layout prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg-base:    #121218;
+    --bg-panel:   #181820;
+    --bg-elev:    #1e1e28;
+    --text:       #f8f8f2;
+    --muted:      #82879f;
+    --dim:        #6e7daf;
+    --accent:     #e135ff;
+    --success:    #50fa7b;
+    --warning:    #f1fa8c;
+    --danger:     #ff6363;
+    --info:       #80ffea;
+  }
+  html, body {
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    margin: 0;
+  }
+  body { padding: 24px; }
+  h1 { font-size: 14px; color: var(--muted); font-weight: 400; margin: 0 0 12px; }
+  .app {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    border: 1px solid var(--dim);
+    background: var(--bg-base);
+    height: 80vh;
+    min-height: 540px;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .row { padding: 6px 12px; display: flex; align-items: center; gap: 12px; }
+  .row.between { justify-content: space-between; }
+  .header {
+    border-bottom: 1px solid var(--bg-elev);
+    flex-direction: column; align-items: stretch;
+  }
+  .title { color: var(--accent); font-weight: 700; }
+  .title small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  .indicator { display: flex; align-items: center; gap: 8px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+  .dot.warn { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+  .dot.ok   { background: var(--success); }
+  .dot.err  { background: var(--danger); }
+  .dot.info { background: var(--info); }
+  .dot.dim  { background: var(--dim); }
+  .meta { color: var(--dim); display: flex; gap: 16px; }
+  .meta .key { color: var(--muted); }
+  .meta .val { color: var(--accent); }
+
+  .bars {
+    border-bottom: 1px solid var(--bg-elev);
+    padding: 6px 12px 8px;
+  }
+  .bars h2 {
+    font-size: 13px; font-weight: 600;
+    color: var(--text); margin: 0 0 6px;
+  }
+  .bars h2 small { color: var(--muted); font-weight: 400; }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 80px;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+  }
+  .bar-row.focused .name { color: var(--accent); font-weight: 700; }
+  .bar-row .cells {
+    display: flex; gap: 1px; height: 14px;
+  }
+  .cell {
+    flex: 1 1 auto; min-width: 4px; height: 100%; border-radius: 1px;
+  }
+  .cell.ok    { background: var(--success); opacity: 0.85; }
+  .cell.warn  { background: var(--warning); }
+  .cell.err   { background: var(--danger); }
+  .cell.info  { background: var(--info); }
+  .cell.unknown { background: var(--bg-elev); }
+  .cell.focused { outline: 1px solid var(--accent); outline-offset: -1px; }
+  .pct { color: var(--success); text-align: right; font-variant-numeric: tabular-nums; }
+  .pct.warn { color: var(--warning); }
+  .pct.err { color: var(--danger); }
+  .axis {
+    display: grid;
+    grid-template-columns: 160px 1fr 80px;
+    color: var(--dim);
+    font-size: 12px;
+  }
+  .axis .scale { display: flex; justify-content: space-between; }
+
+  .body {
+    display: grid;
+    grid-template-columns: 38% 62%;
+    border-bottom: 1px solid var(--bg-elev);
+    overflow: hidden;
+  }
+  .pane {
+    border-right: 1px solid var(--bg-elev);
+    display: flex; flex-direction: column;
+  }
+  .pane:last-child { border-right: none; }
+  .pane h3 {
+    margin: 0; padding: 6px 12px;
+    font-size: 12px; font-weight: 600; color: var(--text);
+    border-bottom: 1px dashed var(--bg-elev);
+  }
+  .list { flex: 1; overflow: auto; padding: 4px 0; }
+  .item {
+    padding: 4px 12px; display: flex; align-items: baseline; gap: 8px;
+  }
+  .item .name { color: var(--text); }
+  .item .label { margin-left: auto; font-size: 12px; }
+  .item .label.ok { color: var(--success); }
+  .item .label.warn { color: var(--warning); }
+  .item .label.err { color: var(--danger); }
+  .item.day-header {
+    color: var(--muted); font-weight: 600;
+    padding-top: 8px;
+  }
+  .item.empty { color: var(--dim); font-style: italic; }
+  .item.selected {
+    background: var(--bg-elev);
+    border-left: 2px solid var(--accent);
+  }
+
+  .footer {
+    padding: 6px 12px;
+    color: var(--dim);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .footer .toast { color: var(--warning); }
+
+  /* Drawer */
+  .drawer {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: 42%;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--accent);
+    box-shadow: -8px 0 24px rgba(0,0,0,0.5);
+    padding: 12px 16px;
+    overflow: auto;
+  }
+  .drawer h4 {
+    margin: 0 0 8px;
+    color: var(--accent);
+    font-size: 13px;
+  }
+  .kv { display: grid; grid-template-columns: 110px 1fr; gap: 4px; padding: 2px 0; }
+  .kv .k { color: var(--muted); }
+  .kv .v { color: var(--text); }
+  .kv .v.warn { color: var(--warning); font-weight: 700; }
+  .kv .v.err  { color: var(--danger); font-weight: 700; }
+  .kv .v.ok   { color: var(--success); font-weight: 700; }
+  .kv .v.info { color: var(--info); font-weight: 700; }
+  .section {
+    color: var(--accent); font-weight: 700; margin: 12px 0 6px;
+  }
+  .update { padding: 4px 0; }
+  .update .pill {
+    color: var(--warning); font-weight: 700; font-size: 12px;
+    margin-right: 6px;
+  }
+  .update .pill.ok { color: var(--success); }
+  .update .pill.err { color: var(--danger); }
+  .update .ts { color: var(--dim); margin-right: 6px; font-size: 12px; }
+  .update p { margin: 4px 0 0 0; color: var(--text); }
+</style>
+</head>
+<body>
+  <h1>claude-status — visual prototype (mirrors the running TUI)</h1>
+
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="row between">
+        <div class="title">claude-status <small>· terminal status for claude.com</small></div>
+        <div class="meta">
+          <div><span class="key">theme:</span> <span class="val">SilkCircuit Neon</span></div>
+          <div><span class="key">↻</span> <span>12s ago</span></div>
+          <div><span class="key">?</span> help</div>
+        </div>
+      </div>
+      <div class="row indicator">
+        <span class="dot warn"></span>
+        <strong>Partial Service Disruption</strong>
+      </div>
+    </div>
+
+    <!-- Uptime bars -->
+    <div class="bars">
+      <h2>Uptime <small>· last 90 days</small></h2>
+
+      <div class="bar-row">
+        <div class="name">Claude.ai</div>
+        <div class="cells" id="bars-claude">
+          <!-- 90 cells injected by JS -->
+        </div>
+        <div class="pct">99.94%</div>
+      </div>
+      <div class="bar-row focused">
+        <div class="name">Anthropic API</div>
+        <div class="cells" id="bars-api"></div>
+        <div class="pct warn">99.81%</div>
+      </div>
+      <div class="bar-row">
+        <div class="name">anthropic.com</div>
+        <div class="cells" id="bars-www"></div>
+        <div class="pct">100.00%</div>
+      </div>
+
+      <div class="axis">
+        <div></div>
+        <div class="scale"><span>90 days ago</span><span>today</span></div>
+        <div></div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+      <!-- Sections pane -->
+      <div class="pane">
+        <h3>Sections</h3>
+        <div class="list">
+          <div class="item">
+            <span class="dot ok"></span>
+            <span class="name">Claude.ai</span>
+            <span class="label ok">operational</span>
+          </div>
+          <div class="item">
+            <span class="dot warn"></span>
+            <span class="name">Anthropic API</span>
+            <span class="label warn">degraded</span>
+          </div>
+          <div class="item">
+            <span class="dot ok"></span>
+            <span class="name">anthropic.com</span>
+            <span class="label ok">operational</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Events pane -->
+      <div class="pane">
+        <h3>Events</h3>
+        <div class="list">
+          <div class="item day-header">▾ Today · Apr 25</div>
+          <div class="item selected">
+            <span class="dot warn"></span>
+            <span class="ts">14:02</span>
+            <span class="name">Elevated errors on api.anthropic.com</span>
+            <span class="label warn">monitoring</span>
+          </div>
+
+          <div class="item day-header">▾ Yesterday · Apr 24</div>
+          <div class="item">
+            <span class="dot err"></span>
+            <span class="ts">13:02</span>
+            <span class="name">Major outage – claude.ai</span>
+            <span class="label ok">resolved</span>
+          </div>
+
+          <div class="item day-header">▾ Apr 23</div>
+          <div class="item empty">(no incidents)</div>
+
+          <div class="item day-header">▾ Apr 22</div>
+          <div class="item">
+            <span class="dot warn"></span>
+            <span class="ts">09:11</span>
+            <span class="name">Increased latency on Messages</span>
+            <span class="label ok">resolved</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span>↑/↓ select · Enter pin · Tab next pane · / filter</span>
+      <span>? help · t theme · q quit</span>
+    </div>
+
+    <!-- Drawer -->
+    <div class="drawer">
+      <h4>Incident detail</h4>
+      <div class="kv"><span class="k">Name</span><span class="v">Elevated errors on api.anthropic.com</span></div>
+      <div class="kv"><span class="k">Status</span><span class="v warn">MONITORING</span></div>
+      <div class="kv"><span class="k">Impact</span><span class="v warn">minor</span></div>
+      <div class="kv"><span class="k">Started</span><span class="v">2026-04-25 14:02 UTC</span></div>
+      <div class="kv"><span class="k">Resolved</span><span class="v">ongoing</span></div>
+      <div class="kv"><span class="k">Affects</span><span class="v">api.anthropic.com – Messages</span></div>
+
+      <div class="section">— Updates</div>
+
+      <div class="update">
+        <span class="ts">Apr 25 15:10</span>
+        <span class="pill">MONITORING</span>
+        <p>A fix has been deployed and we are monitoring the results.</p>
+      </div>
+      <div class="update">
+        <span class="ts">Apr 25 14:31</span>
+        <span class="pill err">IDENTIFIED</span>
+        <p>The issue has been identified — a recently deployed model router. Rolling back.</p>
+      </div>
+      <div class="update">
+        <span class="ts">Apr 25 14:02</span>
+        <span class="pill err">INVESTIGATING</span>
+        <p>We are investigating elevated error rates on Messages requests for a subset of customers.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Generate 90-day bars per row to mirror the TUI's layout.
+    function buildBars(id, plan) {
+      const root = document.getElementById(id);
+      for (let i = 0; i < 90; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell ' + (plan(i) || 'ok');
+        if (i === 89 && id === 'bars-api') cell.classList.add('focused');
+        root.appendChild(cell);
+      }
+    }
+    buildBars('bars-claude', i => i === 88 ? 'err' : 'ok');
+    buildBars('bars-api',    i => (i >= 86 && i <= 89) ? (i === 89 ? 'warn' : (i === 88 ? 'err' : 'warn')) : 'ok');
+    buildBars('bars-www',    i => i < 5 ? 'unknown' : 'ok');
+  </script>
+</body>
+</html>
