@@ -193,27 +193,33 @@ impl App {
             }
             return;
         }
-        match (k.code, k.modifiers) {
-            (KeyCode::Char('c'), KeyModifiers::CONTROL) => self.quit = true,
-            (KeyCode::Char('q'), _) => self.quit = true,
-            (KeyCode::Esc, _) => {
+        let plain = is_plain(k.modifiers);
+        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
+        match k.code {
+            KeyCode::Char('c' | 'd') if ctrl => self.quit = true,
+            KeyCode::Char('q') if plain => self.quit = true,
+            KeyCode::Esc => {
                 if self.overlay.is_open() {
                     self.overlay.close();
                 } else {
                     self.quit = true;
                 }
             }
-            (KeyCode::Tab, _) => self.cycle_focus(1),
-            (KeyCode::BackTab, _) => self.cycle_focus(-1),
-            (KeyCode::Char('?'), _) => self.help_open = true,
-            (KeyCode::Char('t'), _) => self.theme_picker_open = true,
-            (KeyCode::Char('d'), _) => self.overlay.toggle(),
-            (KeyCode::Char('r'), _) => self.toast("refreshing...".into()),
-            (KeyCode::Up | KeyCode::Char('k'), _) => self.move_selection(-1),
-            (KeyCode::Down | KeyCode::Char('j'), _) => self.move_selection(1),
-            (KeyCode::Left | KeyCode::Char('h'), _) => self.move_horizontal(-1),
-            (KeyCode::Right | KeyCode::Char('l'), _) => self.move_horizontal(1),
-            (KeyCode::Enter, _) => {
+            KeyCode::Tab => self.cycle_focus(1),
+            KeyCode::BackTab => self.cycle_focus(-1),
+            KeyCode::Char('?') => self.help_open = true,
+            KeyCode::Char('t') if plain => self.theme_picker_open = true,
+            KeyCode::Char('d') if plain => self.overlay.toggle(),
+            KeyCode::Char('r') if plain => self.toast("refreshing...".into()),
+            KeyCode::Up => self.move_selection(-1),
+            KeyCode::Char('k') if plain => self.move_selection(-1),
+            KeyCode::Down => self.move_selection(1),
+            KeyCode::Char('j') if plain => self.move_selection(1),
+            KeyCode::Left => self.move_horizontal(-1),
+            KeyCode::Char('h') if plain => self.move_horizontal(-1),
+            KeyCode::Right => self.move_horizontal(1),
+            KeyCode::Char('l') if plain => self.move_horizontal(1),
+            KeyCode::Enter => {
                 self.update_drawer_from_selection();
                 if !self.overlay.is_open() {
                     self.overlay.open();
@@ -286,6 +292,10 @@ impl App {
             }
         }
     }
+}
+
+fn is_plain(m: KeyModifiers) -> bool {
+    m == KeyModifiers::NONE || m == KeyModifiers::SHIFT
 }
 
 fn wrap(idx: usize, dir: i8, len: usize) -> usize {

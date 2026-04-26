@@ -3,7 +3,7 @@ use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use tui_overlay::{Anchor, Backdrop, Easing, Overlay, Slide};
+use tui_overlay::{Anchor, Backdrop, Overlay, Slide};
 
 use crate::api::{Component, Incident};
 use crate::app::{App, DrawerTarget};
@@ -32,7 +32,6 @@ pub fn render(frame: &mut Frame, area: Rect, app: &mut App) {
         .block(block);
 
     let mut state = app.overlay.clone();
-    let _ = Easing::EaseOut;
     frame.render_stateful_widget(overlay, area, &mut state);
     app.overlay = state;
 
