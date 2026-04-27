@@ -1,54 +1,80 @@
-use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::Frame;
 
 use crate::app::App;
 
-pub mod drawer;
+pub mod banner;
 pub mod footer;
 pub mod header;
 pub mod help;
-pub mod sections;
+pub mod modal;
+pub mod services;
 pub mod skeleton;
 pub mod theme_picker;
 pub mod timeline;
-pub mod uptime_bars;
+
+/// Maximum content width for the stacked body. Wider terminals get
+/// horizontal padding rather than letting rows stretch indefinitely.
+const BODY_MAX_WIDTH: u16 = 100;
 
 pub fn render(frame: &mut Frame, app: &mut App) {
-    let area = frame.area();
-    let bg = app.theme.bg();
-    fill_bg(frame, area, bg);
+    let full = frame.area();
+    fill_bg(frame, full, app.theme.bg());
+    let content = inset(full, 1);
 
-    let bars_height = bars_height(app);
+    let alert = banner::build(app);
+    let banner_h = alert.as_ref().map_or(0, |a| a.block_height());
     let chunks = Layout::vertical([
-        Constraint::Length(2),                  // header
-        Constraint::Length(bars_height),        // uptime bars
-        Constraint::Min(8),                     // body
-        Constraint::Length(1),                  // footer
+        Constraint::Length(2),        // header
+        Constraint::Length(banner_h), // banner (0 when empty)
+        Constraint::Min(8),           // body
+        Constraint::Length(1),        // footer
     ])
-    .split(area);
+    .split(content);
 
     header::render(frame, chunks[0], app);
-    uptime_bars::render(frame, chunks[1], app);
+    if let Some(alert) = &alert {
+        banner::render(frame, centered(chunks[1], BODY_MAX_WIDTH), alert, app);
+    }
 
-    let body = Layout::horizontal([Constraint::Percentage(40), Constraint::Min(0)]).split(chunks[2]);
-    sections::render(frame, body[0], app);
-    timeline::render(frame, body[1], app);
+    let body = centered(chunks[2], BODY_MAX_WIDTH);
+    let services_h = services::block_height(app.services().len()).min(body.height);
+    let body_split =
+        Layout::vertical([Constraint::Length(services_h), Constraint::Min(4)]).split(body);
+    services::render(frame, body_split[0], app);
+    timeline::render(frame, body_split[1], app);
 
     footer::render(frame, chunks[3], app);
 
-    drawer::render(frame, area, app);
+    modal::render(frame, full, app);
 
     if app.help_open {
-        help::render(frame, area, app);
+        help::render(frame, full, app);
     }
     if app.theme_picker_open {
-        theme_picker::render(frame, area, app);
+        theme_picker::render(frame, full, app);
     }
 }
 
-fn bars_height(app: &App) -> u16 {
-    let rows = app.bars.len().max(1) as u16;
-    rows + 3
+fn inset(rect: Rect, padding: u16) -> Rect {
+    Rect {
+        x: rect.x + padding,
+        y: rect.y + padding,
+        width: rect.width.saturating_sub(padding * 2),
+        height: rect.height.saturating_sub(padding * 2),
+    }
+}
+
+fn centered(area: Rect, max_width: u16) -> Rect {
+    if area.width <= max_width {
+        return area;
+    }
+    let pad = (area.width - max_width) / 2;
+    Rect {
+        x: area.x + pad,
+        width: max_width,
+        ..area
+    }
 }
 
 fn fill_bg(frame: &mut Frame, area: Rect, bg: ratatui::style::Color) {

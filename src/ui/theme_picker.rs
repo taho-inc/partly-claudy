@@ -1,8 +1,8 @@
-use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState};
+use ratatui::Frame;
 
 use crate::app::App;
 
@@ -10,8 +10,22 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let popup = centered(area, 50, 20);
     frame.render_widget(Clear, popup);
 
+    let hint = Line::from(vec![
+        Span::raw(" "),
+        Span::styled("[enter]", Style::default().fg(app.theme.accent())),
+        Span::styled(" select · ", Style::default().fg(app.theme.dim())),
+        Span::styled("[esc]", Style::default().fg(app.theme.accent())),
+        Span::styled(" cancel ", Style::default().fg(app.theme.dim())),
+    ])
+    .right_aligned();
     let block = Block::default()
-        .title(Span::styled(" Theme picker ", Style::default().fg(app.theme.text()).add_modifier(Modifier::BOLD)))
+        .title(Span::styled(
+            " Theme picker ",
+            Style::default()
+                .fg(app.theme.text())
+                .add_modifier(Modifier::BOLD),
+        ))
+        .title_bottom(hint)
         .borders(Borders::ALL)
         .border_style(Style::default().fg(app.theme.accent()))
         .style(Style::default().bg(app.theme.panel_bg()));

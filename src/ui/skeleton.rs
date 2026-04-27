@@ -1,5 +1,5 @@
-use ratatui::Frame;
 use ratatui::layout::Rect;
+use ratatui::Frame;
 use tui_skeleton::{AnimationMode, Color as SkColor, SkeletonList};
 
 use crate::app::App;

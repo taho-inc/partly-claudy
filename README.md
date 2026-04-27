@@ -4,36 +4,41 @@ A terminal UI for the Claude status page — check Claude's operational status
 without leaving your terminal.
 
 ```
-┌─ claude-status ─────────────────── theme: SilkCircuit Neon · ↻ 12s ago ──┐
-│ ● All Systems Operational                                                 │
-├───────────────────────────────────────────────────────────────────────────┤
-│ Uptime · last 90 days                                                     │
-│ Claude.ai          ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮  99.94%   │
-│ Anthropic API      ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮  99.81%   │
-│                    90 days ago                                    today   │
-├──────────────────────────┬────────────────────────────────────────────────┤
-│ Sections                 │ Events                                         │
-│ ● Claude.ai              │ ▾ Today                                        │
-│ ● Anthropic API          │   ● 14:02 Elevated errors · API · monitoring   │
-│ ● anthropic.com          │ ▾ Yesterday                                    │
-│                          │   ● Major outage – claude.ai · resolved        │
-└──────────────────────────┴────────────────────────────────────────────────┘
+┌─ claude-status ─────────────────── theme: SilkCircuit Neon · page 6h ago ──┐
+│ ● All Systems Operational                                                   │
+│                                                                             │
+│  ┌─ ▶ Services ───────────────────────────────────────────────────────┐    │
+│  │  ▶ claude.ai                                          Operational  │    │
+│  │   ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮  │    │
+│  │   90d ago ─────────────── 98.95% uptime ──────────────────  today  │    │
+│  │  ...                                                                │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│  ┌─   Events ────────────────────────────────────────────────────────┐     │
+│  │  ▾ Today · Apr 27                                                  │     │
+│  │    (no events)                                                     │     │
+│  │  ▾ Sat Apr 25                                                      │     │
+│  │    ● 18:42  Elevated errors on claude.ai             resolved      │     │
+│  └────────────────────────────────────────────────────────────────────┘     │
+└── ↑/↓ service · ←/→ scrub day · Enter detail · Tab next pane ──────────────┘
 ```
 
 ## Features
 
 - **Overall indicator** — at-a-glance "All Systems Operational" / minor /
   major / critical from the live Statuspage feed.
-- **90-day uptime bars** — one row per top-level Claude product, one cell
-  per day, colored by the worst severity seen that day. Mirrors the colored
-  bars on https://status.claude.com.
-- **Sections pane** — the same component groups Claude publishes (Claude.ai,
-  Anthropic API, anthropic.com, …).
-- **Events pane** — incidents bucketed by calendar day, newest first, with
-  status pills.
-- **Detail drawer** — slides in from the right (`tui-overlay`), pinned by
-  default. Shows incident updates newest-first, component children, or the
-  per-day breakdown when scrubbing the bars.
+- **Services pane** — one 3-row block per Claude product, mirroring
+  `claude.com/status`: dot + name with right-aligned status pill on
+  row 1, full-width 90-day uptime bar on row 2, dim axis with centered
+  uptime % on row 3. Cursored service filters the Events pane.
+- **Events pane** — every day in the 90-day window, newest first, with
+  "(no events)" placeholders for clean days.
+- **Disruption banner** — bordered block above the body when any active
+  incident or scheduled maintenance is present; border tinted by the
+  highest active impact (red for major/critical, yellow for minor,
+  blue for maintenance-only).
+- **Detail modal** — center-anchored overlay (`tui-overlay`) opened by
+  Enter, sized to content. Shows incident updates newest-first, or the
+  per-day breakdown when opened from a focused service-day cell.
 - **Themes** — 39 builtin themes via [`opaline`](https://crates.io/crates/opaline);
   press `t` for a live picker.
 - **Skeleton loading** — placeholder rows while the first fetch is in
@@ -69,34 +74,35 @@ claude-status --base https://status.example.com   # any Statuspage tenant
 | Key | Action |
 |-----|--------|
 | `q` / `Ctrl-c` | Quit |
-| `Esc` | Close drawer; if drawer closed, quit |
-| `Tab` / `Shift-Tab` | Cycle pane focus (Bars → Sections → Events) |
+| `Esc` | Close modal; if modal closed, quit |
+| `Tab` / `Shift-Tab` | Toggle Services ↔ Events |
 | `↑` `↓` / `j` `k` | Move selection in focused pane |
-| `←` `→` / `h` `l` | Scrub days in the bars pane |
-| `Enter` | Pin selection into the drawer |
-| `d` | Toggle drawer |
+| `←` `→` / `h` `l` | Scrub days on the focused service |
+| `Enter` | Open detail modal |
 | `r` | Manual refresh |
 | `t` | Theme picker |
 | `?` | Help |
 
 ## Data source
 
-Hits the public Statuspage v2 endpoints under
-`https://status.claude.com/api/v2/`:
+Three Statuspage endpoints, fetched in two phases:
 
-- `summary.json` — page metadata, overall status, components, unresolved
-  incidents, scheduled maintenances. The polling loop only ever calls this.
-- `incidents.json` (via fixtures or future expansion) — past incidents,
-  used to derive the 90-day uptime bars locally.
+1. **Parallel:** `summary.json` (page meta + components +
+   scheduled_maintenances) · `incidents.json` (~50 most recent typed
+   incidents) · `history.json?page=1..2` (incident codes only, three
+   calendar months per page; undocumented).
+2. **Per-incident detail:** for codes present in history but not in
+   the recent typed set, `incidents/{code}.json` is fetched in
+   parallel (concurrency capped at 8). Months whose last day falls
+   before the 90-day cutoff are filtered before any detail issues.
 
-The 90-day bars are derived purely from incident windows projected onto
-each component group's days; we don't depend on Statuspage's paid uptime
-endpoint.
-
-## Layout reference
-
-A static HTML mockup of the layout lives in [`prototype/index.html`](./prototype/index.html).
-Open it in any browser side-by-side with the running TUI to compare.
+The uptime % is computed locally by walking each incident's
+`incident_updates[*].affected_components[*]` status transitions —
+weighted (`major_outage = 1.0`, `partial_outage = 0.5`, others = 0)
+and capped at the incident's mitigation timestamp (first
+`monitoring | resolved | postmortem` update). Matches the published
+per-component 90-day numbers within ~0.2 percentage points without
+calling Statuspage's paid `/uptime` endpoint.
 
 ## Behavior specs
 

@@ -9,16 +9,15 @@ Feature: At-a-glance overall status
 
   Scenario: Cold start shows skeleton placeholders
     Given the app has just launched and no data has loaded yet
-    Then the Sections pane shows a tui-skeleton SkeletonList
+    Then the Services pane shows a tui-skeleton SkeletonList
     And the Events pane shows a tui-skeleton SkeletonList
-    And the Uptime bars row shows a tui-skeleton SkeletonList
 
   Scenario: First successful fetch replaces the skeletons
     Given the app is showing skeleton placeholders
     When `/api/v2/summary.json` returns a 200 response
     Then both panes render real data within one frame
     And the header shows the indicator dot in the color matching the status indicator
-    And the right side of the header shows "↻ just now"
+    And the right side of the header shows "page updated <relative>"
 
   Scenario Outline: Header indicator color matches the API status
     Given the API returned a status indicator of "<indicator>"

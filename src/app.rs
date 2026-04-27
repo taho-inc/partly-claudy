@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tui_overlay::OverlayState;
 
@@ -12,15 +12,13 @@ use crate::theme::AppTheme;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pane {
-    Bars,
-    Sections,
+    Services,
     Events,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DrawerTarget {
+pub enum ModalTarget {
     Empty,
-    Component(String),
     Incident(String),
     Day { row: usize, day: usize },
 }
@@ -37,11 +35,10 @@ pub struct App {
     pub last_attempt_at: Option<Instant>,
     pub help_open: bool,
     pub theme_picker_open: bool,
-    pub bars_row: usize,
     pub bars_day: usize,
-    pub section_idx: usize,
+    pub service_idx: usize,
     pub event_idx: usize,
-    pub drawer_target: DrawerTarget,
+    pub modal_target: ModalTarget,
     pub quit: bool,
     pub status_toast: Option<String>,
     pub toast_until: Option<Instant>,
@@ -49,13 +46,11 @@ pub struct App {
 
 impl App {
     pub fn new(theme: AppTheme) -> Self {
-        let mut overlay = OverlayState::new().with_duration(Duration::from_millis(140));
-        overlay.open();
         Self {
             started_at: Instant::now(),
             theme,
-            overlay,
-            focus: Pane::Sections,
+            overlay: OverlayState::new(),
+            focus: Pane::Services,
             summary: None,
             bars: Vec::new(),
             error: None,
@@ -63,11 +58,10 @@ impl App {
             last_attempt_at: None,
             help_open: false,
             theme_picker_open: false,
-            bars_row: 0,
             bars_day: bars::WINDOW_DAYS as usize - 1,
-            section_idx: 0,
+            service_idx: 0,
             event_idx: 0,
-            drawer_target: DrawerTarget::Empty,
+            modal_target: ModalTarget::Empty,
             quit: false,
             status_toast: None,
             toast_until: None,
@@ -82,50 +76,46 @@ impl App {
         self.summary.is_none()
     }
 
-    pub fn section_rows(&self) -> Vec<&Component> {
-        let Some(s) = self.summary.as_ref() else { return vec![] };
-        let mut rows: Vec<&Component> = s.components.iter().filter(|c| c.group).collect();
-        rows.sort_by_key(|c| c.position);
-        let mut out: Vec<&Component> = Vec::new();
-        for g in rows {
-            out.push(g);
-        }
-        for c in &s.components {
-            if !c.group && c.group_id.is_none() {
-                out.push(c);
-            }
-        }
+    pub fn services(&self) -> Vec<&Component> {
+        let Some(s) = self.summary.as_ref() else {
+            return vec![];
+        };
+        let mut out: Vec<&Component> = s
+            .components
+            .iter()
+            .filter(|c| c.group || c.group_id.is_none())
+            .collect();
+        out.sort_by_key(|c| (!c.group, c.position));
         out
     }
 
-    pub fn children_of(&self, group_id: &str) -> Vec<&Component> {
-        let Some(s) = self.summary.as_ref() else { return vec![] };
-        let mut kids: Vec<&Component> = s
-            .components
-            .iter()
-            .filter(|c| c.group_id.as_deref() == Some(group_id))
-            .collect();
-        kids.sort_by_key(|c| c.position);
-        kids
+    pub fn selected_service(&self) -> Option<&Component> {
+        self.services().get(self.service_idx).copied()
     }
 
     pub fn timeline(&self) -> Vec<(String, Vec<&Incident>)> {
-        let Some(s) = self.summary.as_ref() else { return vec![] };
-        let mut all: Vec<&Incident> = s.incidents.iter().chain(s.past_incidents.iter()).collect();
-        all.sort_by_key(|i| std::cmp::Reverse(i.started_at));
-
-        let mut by_day: BTreeMap<i64, Vec<&Incident>> = BTreeMap::new();
-        for inc in all {
-            let day = inc.started_at.date_naive();
-            let key = day.num_days_from_ce() as i64;
-            by_day.entry(-key).or_default().push(inc);
+        let Some(s) = self.summary.as_ref() else {
+            return vec![];
+        };
+        let matches_service = self.incident_filter();
+        let mut by_day: HashMap<NaiveDate, Vec<&Incident>> = HashMap::new();
+        for inc in &s.incidents {
+            if !matches_service(inc) {
+                continue;
+            }
+            by_day
+                .entry(inc.started_at.date_naive())
+                .or_default()
+                .push(inc);
         }
-        by_day
-            .into_values()
-            .map(|mut v| {
-                v.sort_by_key(|i| std::cmp::Reverse(i.started_at));
-                let label = day_label(v[0].started_at);
-                (label, v)
+
+        let today = bars::today_utc().date_naive();
+        (0..bars::WINDOW_DAYS)
+            .map(|offset| {
+                let d = today - chrono::Duration::days(offset);
+                let mut incidents = by_day.remove(&d).unwrap_or_default();
+                incidents.sort_by_key(|i| std::cmp::Reverse(i.started_at));
+                (day_label(d), incidents)
             })
             .collect()
     }
@@ -134,10 +124,30 @@ impl App {
         self.timeline().into_iter().flat_map(|(_, v)| v).collect()
     }
 
+    fn incident_filter(&self) -> Box<dyn Fn(&Incident) -> bool + '_> {
+        let Some(service) = self.selected_service() else {
+            return Box::new(|_| true);
+        };
+        let Some(summary) = self.summary.as_ref() else {
+            return Box::new(|_| true);
+        };
+        let service_id = service.id.clone();
+        let leaf_ids: std::collections::HashSet<String> = summary
+            .components
+            .iter()
+            .filter(|c| c.group_id.as_deref() == Some(service_id.as_str()))
+            .map(|c| c.id.clone())
+            .collect();
+        Box::new(move |inc| {
+            inc.components
+                .iter()
+                .any(|cr| cr.id == service_id || leaf_ids.contains(&cr.id))
+        })
+    }
+
     pub fn handle(&mut self, ev: AppEvent) {
         match ev {
             AppEvent::Tick => {
-                self.overlay.tick(Duration::from_millis(50));
                 if let Some(until) = self.toast_until {
                     if Instant::now() >= until {
                         self.status_toast = None;
@@ -150,11 +160,8 @@ impl App {
                 self.last_loaded_at = Some(Utc::now());
                 self.last_attempt_at = Some(Instant::now());
                 self.error = None;
-                self.bars = bars::compute(&s.components, &all_incidents(&s), bars::today_utc());
+                self.bars = bars::compute(&s.components, &s.incidents, bars::today_utc());
                 self.summary = Some(*s);
-                if matches!(self.drawer_target, DrawerTarget::Empty) {
-                    self.refresh_drawer_default();
-                }
             }
             AppEvent::LoadFailed(e) => {
                 self.last_attempt_at = Some(Instant::now());
@@ -165,12 +172,6 @@ impl App {
         }
     }
 
-    fn refresh_drawer_default(&mut self) {
-        if let Some(c) = self.section_rows().first() {
-            self.drawer_target = DrawerTarget::Component(c.id.clone());
-        }
-    }
-
     fn toast(&mut self, msg: String) {
         self.status_toast = Some(msg);
         self.toast_until = Some(Instant::now() + Duration::from_secs(4));
@@ -178,14 +179,19 @@ impl App {
 
     fn handle_key(&mut self, k: KeyEvent) {
         if self.help_open {
-            if matches!(k.code, KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('q')) {
+            if matches!(
+                k.code,
+                KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('q')
+            ) {
                 self.help_open = false;
             }
             return;
         }
         if self.theme_picker_open {
             match k.code {
-                KeyCode::Esc | KeyCode::Char('t') | KeyCode::Char('q') => self.theme_picker_open = false,
+                KeyCode::Esc | KeyCode::Char('t') | KeyCode::Char('q') => {
+                    self.theme_picker_open = false
+                }
                 KeyCode::Up | KeyCode::Char('k') => self.theme.cycle(-1),
                 KeyCode::Down | KeyCode::Char('j') => self.theme.cycle(1),
                 KeyCode::Enter => self.theme_picker_open = false,
@@ -209,7 +215,6 @@ impl App {
             KeyCode::BackTab => self.cycle_focus(-1),
             KeyCode::Char('?') => self.help_open = true,
             KeyCode::Char('t') if plain => self.theme_picker_open = true,
-            KeyCode::Char('d') if plain => self.overlay.toggle(),
             KeyCode::Char('r') if plain => self.toast("refreshing...".into()),
             KeyCode::Up => self.move_selection(-1),
             KeyCode::Char('k') if plain => self.move_selection(-1),
@@ -219,41 +224,27 @@ impl App {
             KeyCode::Char('h') if plain => self.move_horizontal(-1),
             KeyCode::Right => self.move_horizontal(1),
             KeyCode::Char('l') if plain => self.move_horizontal(1),
-            KeyCode::Enter => {
-                self.update_drawer_from_selection();
-                if !self.overlay.is_open() {
-                    self.overlay.open();
-                }
-            }
+            KeyCode::Enter => self.open_modal_for_selection(),
             _ => {}
         }
     }
 
-    fn cycle_focus(&mut self, dir: i8) {
-        let order = [Pane::Bars, Pane::Sections, Pane::Events];
-        let idx = order.iter().position(|p| *p == self.focus).unwrap_or(1);
-        let len = order.len() as isize;
-        let next = ((idx as isize + dir as isize) % len + len) % len;
-        self.focus = order[next as usize];
+    fn cycle_focus(&mut self, _dir: i8) {
+        self.focus = match self.focus {
+            Pane::Services => Pane::Events,
+            Pane::Events => Pane::Services,
+        };
     }
 
     fn move_selection(&mut self, dir: i8) {
         match self.focus {
-            Pane::Bars => {
-                let n = self.bars.len();
+            Pane::Services => {
+                let n = self.services().len();
                 if n == 0 {
                     return;
                 }
-                self.bars_row = wrap(self.bars_row, dir, n);
-                self.update_drawer_from_selection();
-            }
-            Pane::Sections => {
-                let n = self.section_rows().len();
-                if n == 0 {
-                    return;
-                }
-                self.section_idx = wrap(self.section_idx, dir, n);
-                self.update_drawer_from_selection();
+                self.service_idx = wrap(self.service_idx, dir, n);
+                self.event_idx = 0;
             }
             Pane::Events => {
                 let n = self.flat_incidents().len();
@@ -261,33 +252,31 @@ impl App {
                     return;
                 }
                 self.event_idx = wrap(self.event_idx, dir, n);
-                self.update_drawer_from_selection();
             }
         }
     }
 
     fn move_horizontal(&mut self, dir: i8) {
-        if matches!(self.focus, Pane::Bars) {
+        if matches!(self.focus, Pane::Services) {
             let max = bars::WINDOW_DAYS as usize - 1;
             let next = self.bars_day as isize + dir as isize;
             self.bars_day = next.clamp(0, max as isize) as usize;
-            self.update_drawer_from_selection();
         }
     }
 
-    pub fn update_drawer_from_selection(&mut self) {
+    pub fn open_modal_for_selection(&mut self) {
         match self.focus {
-            Pane::Bars => {
-                self.drawer_target = DrawerTarget::Day { row: self.bars_row, day: self.bars_day };
-            }
-            Pane::Sections => {
-                if let Some(c) = self.section_rows().get(self.section_idx) {
-                    self.drawer_target = DrawerTarget::Component(c.id.clone());
-                }
+            Pane::Services => {
+                self.modal_target = ModalTarget::Day {
+                    row: self.service_idx,
+                    day: self.bars_day,
+                };
+                self.overlay.open();
             }
             Pane::Events => {
                 if let Some(i) = self.flat_incidents().get(self.event_idx) {
-                    self.drawer_target = DrawerTarget::Incident(i.id.clone());
+                    self.modal_target = ModalTarget::Incident(i.id.clone());
+                    self.overlay.open();
                 }
             }
         }
@@ -304,20 +293,15 @@ fn wrap(idx: usize, dir: i8, len: usize) -> usize {
     }
     let n = len as isize;
     let next = (idx as isize + dir as isize) % n;
-    if next < 0 { (next + n) as usize } else { next as usize }
+    if next < 0 {
+        (next + n) as usize
+    } else {
+        next as usize
+    }
 }
 
-fn all_incidents(s: &Summary) -> Vec<Incident> {
-    let mut v = Vec::with_capacity(s.incidents.len() + s.past_incidents.len() + s.scheduled_maintenances.len());
-    v.extend(s.incidents.iter().cloned());
-    v.extend(s.past_incidents.iter().cloned());
-    v.extend(s.scheduled_maintenances.iter().cloned());
-    v
-}
-
-fn day_label(ts: DateTime<Utc>) -> String {
+fn day_label(d: NaiveDate) -> String {
     let today = Utc::now().date_naive();
-    let d = ts.date_naive();
     let delta = (today - d).num_days();
     match delta {
         0 => format!("Today · {}", d.format("%b %-d")),

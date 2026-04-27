@@ -1,10 +1,12 @@
 #![allow(dead_code)]
 
+use std::collections::HashSet;
 use std::path::Path;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::{Context, Result};
+use futures::stream::{self, StreamExt};
 use serde::Deserialize;
 
 const DEFAULT_BASE: &str = "https://status.claude.com";
@@ -112,7 +114,18 @@ pub struct IncidentUpdate {
     pub status: IncidentStatus,
     pub body: String,
     pub created_at: DateTime<Utc>,
-    pub display_at: DateTime<Utc>,
+    #[serde(default)]
+    pub display_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub affected_components: Option<Vec<AffectedComponent>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AffectedComponent {
+    pub code: String,
+    pub name: String,
+    pub old_status: String,
+    pub new_status: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -131,9 +144,68 @@ pub struct Summary {
     pub incidents: Vec<Incident>,
     #[serde(default)]
     pub scheduled_maintenances: Vec<Incident>,
-    #[serde(default)]
-    pub past_incidents: Vec<Incident>,
 }
+
+#[derive(Deserialize)]
+struct IncidentList {
+    #[serde(default)]
+    incidents: Vec<Incident>,
+}
+
+#[derive(Deserialize)]
+struct IncidentEnvelope {
+    incident: Incident,
+}
+
+/// Schema returned by the (undocumented) `/history.json[?page=N]` endpoint.
+/// Used to enumerate incident codes outside the most-recent v2 window so
+/// we can fetch their full typed detail.
+#[derive(Deserialize)]
+struct HistoryResponse {
+    #[serde(default)]
+    months: Vec<HistoryMonth>,
+}
+
+#[derive(Deserialize)]
+struct HistoryMonth {
+    name: String,
+    year: i32,
+    #[serde(default)]
+    incidents: Vec<HistoryIncident>,
+}
+
+#[derive(Deserialize)]
+struct HistoryIncident {
+    code: String,
+}
+
+const MONTH_NAMES: [&str; 12] = [
+    "January", "February", "March", "April", "May", "June", "July", "August", "September",
+    "October", "November", "December",
+];
+
+/// Returns true when this month's last day is on or after `cutoff` —
+/// i.e. the month overlaps our window of interest.
+fn month_overlaps(month: &HistoryMonth, cutoff: chrono::NaiveDate) -> bool {
+    let Some(idx) = MONTH_NAMES.iter().position(|n| *n == month.name) else {
+        return true; // unknown name — be permissive
+    };
+    let m = idx as u32 + 1;
+    let last = if m == 12 {
+        chrono::NaiveDate::from_ymd_opt(month.year, 12, 31)
+    } else {
+        chrono::NaiveDate::from_ymd_opt(month.year, m + 1, 1)
+            .map(|d| d - chrono::Duration::days(1))
+    };
+    last.is_some_and(|d| d >= cutoff)
+}
+
+/// Concurrency cap on per-incident detail fetches. Keeps the public API
+/// happy and bounds first-load latency.
+const DETAIL_FETCH_CONCURRENCY: usize = 8;
+/// History pages to scan when filling the older end of the window.
+/// Each page is roughly three calendar months.
+const HISTORY_PAGES: usize = 2;
 
 #[derive(Clone)]
 pub enum Source {
@@ -160,20 +232,7 @@ impl Source {
 
     pub async fn fetch_summary(&self) -> Result<Summary> {
         match self {
-            Self::Live { base, http } => {
-                let url = format!("{base}/api/v2/summary.json");
-                let summary: Summary = http
-                    .get(&url)
-                    .send()
-                    .await
-                    .wrap_err_with(|| format!("GET {url}"))?
-                    .error_for_status()
-                    .wrap_err_with(|| format!("status check {url}"))?
-                    .json()
-                    .await
-                    .wrap_err_with(|| format!("decode JSON from {url}"))?;
-                Ok(summary)
-            }
+            Self::Live { base, http } => fetch_live(base, http).await,
             Self::Fixture(path) => {
                 let bytes = tokio::fs::read(path)
                     .await
@@ -184,6 +243,75 @@ impl Source {
             }
         }
     }
+}
+
+async fn fetch_live(base: &str, http: &reqwest::Client) -> Result<Summary> {
+    let summary_url = format!("{base}/api/v2/summary.json");
+    let recent_url = format!("{base}/api/v2/incidents.json");
+    let history_urls: Vec<String> = (1..=HISTORY_PAGES)
+        .map(|p| format!("{base}/history.json?page={p}"))
+        .collect();
+
+    // Phase 1: summary + recent typed incidents in parallel.
+    let (summary, recent) = tokio::try_join!(
+        fetch_json::<Summary>(http, &summary_url),
+        fetch_json::<IncidentList>(http, &recent_url),
+    )?;
+
+    // History pages are best-effort; tolerate failures so the recent window
+    // still renders if the undocumented endpoint changes shape.
+    let history: Vec<HistoryResponse> = stream::iter(history_urls)
+        .map(|url| async move { fetch_json::<HistoryResponse>(http, &url).await })
+        .buffer_unordered(HISTORY_PAGES)
+        .filter_map(|r| async move { r.ok() })
+        .collect()
+        .await;
+    let cutoff = (Utc::now() - chrono::Duration::days(crate::bars::WINDOW_DAYS)).date_naive();
+    let history_codes: Vec<String> = history
+        .into_iter()
+        .flat_map(|h| h.months.into_iter())
+        .filter(|m| month_overlaps(m, cutoff))
+        .flat_map(|m| m.incidents.into_iter().map(|i| i.code))
+        .collect();
+
+    // Phase 2: parallel detail fetch for codes not already in the recent window.
+    let recent_ids: HashSet<String> = recent.incidents.iter().map(|i| i.id.clone()).collect();
+    let missing: Vec<String> = history_codes
+        .into_iter()
+        .filter(|c| !recent_ids.contains(c))
+        .collect();
+
+    let detail_results: Vec<Result<Incident>> = stream::iter(missing)
+        .map(|code| async move {
+            let url = format!("{base}/api/v2/incidents/{code}.json");
+            fetch_json::<IncidentEnvelope>(http, &url)
+                .await
+                .map(|e| e.incident)
+        })
+        .buffer_unordered(DETAIL_FETCH_CONCURRENCY)
+        .collect()
+        .await;
+
+    let mut all = recent.incidents;
+    for inc in detail_results.into_iter().flatten() {
+        all.push(inc);
+    }
+    Ok(Summary {
+        incidents: all,
+        ..summary
+    })
+}
+
+async fn fetch_json<T: serde::de::DeserializeOwned>(http: &reqwest::Client, url: &str) -> Result<T> {
+    http.get(url)
+        .send()
+        .await
+        .wrap_err_with(|| format!("GET {url}"))?
+        .error_for_status()
+        .wrap_err_with(|| format!("status check {url}"))?
+        .json()
+        .await
+        .wrap_err_with(|| format!("decode JSON from {url}"))
 }
 
 impl ComponentStatus {

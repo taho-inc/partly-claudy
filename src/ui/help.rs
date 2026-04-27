@@ -1,8 +1,8 @@
-use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::Frame;
 
 use crate::app::App;
 
@@ -11,7 +11,12 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(Clear, popup);
 
     let block = Block::default()
-        .title(Span::styled(" Help ", Style::default().fg(app.theme.text()).add_modifier(Modifier::BOLD)))
+        .title(Span::styled(
+            " Help ",
+            Style::default()
+                .fg(app.theme.text())
+                .add_modifier(Modifier::BOLD),
+        ))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(app.theme.accent()))
         .style(Style::default().bg(app.theme.panel_bg()));
@@ -19,19 +24,24 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(block, popup);
 
     let muted = Style::default().fg(app.theme.muted());
-    let key = Style::default().fg(app.theme.accent()).add_modifier(Modifier::BOLD);
+    let key = Style::default()
+        .fg(app.theme.accent())
+        .add_modifier(Modifier::BOLD);
 
     let lines = vec![
         row(" q / Ctrl-c", "quit", key, muted),
-        row(" Esc        ", "close drawer · then quit", key, muted),
-        row(" Tab / ⇧Tab  ", "cycle Bars → Sections → Events", key, muted),
+        row(" Esc        ", "close modal · then quit", key, muted),
+        row(" Tab / ⇧Tab  ", "toggle Services ↔ Events", key, muted),
         row(" ↑ ↓ k j    ", "move selection in focused pane", key, muted),
-        row(" ← → h l    ", "scrub days in the bars pane", key, muted),
-        row(" Enter      ", "pin selection into the drawer", key, muted),
-        row(" d          ", "toggle the detail drawer", key, muted),
+        row(
+            " ← → h l    ",
+            "scrub days on the focused service",
+            key,
+            muted,
+        ),
+        row(" Enter      ", "open detail modal", key, muted),
         row(" r          ", "manual refresh now", key, muted),
         row(" t          ", "open theme picker (opaline)", key, muted),
-        row(" /          ", "filter incidents by name", key, muted),
         row(" ?          ", "this help screen", key, muted),
         Line::raw(""),
         Line::from(Span::styled(
@@ -44,7 +54,10 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
 }
 
 fn row<'a>(k: &'a str, v: &'a str, key_style: Style, muted: Style) -> Line<'a> {
-    Line::from(vec![Span::styled(k.to_string(), key_style), Span::styled(format!("  {}", v), muted)])
+    Line::from(vec![
+        Span::styled(k.to_string(), key_style),
+        Span::styled(format!("  {}", v), muted),
+    ])
 }
 
 fn centered(area: Rect, width: u16, height: u16) -> Rect {

@@ -83,7 +83,7 @@
     },
     {
       "id": "cmp_api_messages",
-      "name": "api.anthropic.com – Messages",
+      "name": "api.anthropic.com \u2013 Messages",
       "status": "degraded_performance",
       "created_at": "2025-01-01T00:00:00.000Z",
       "updated_at": "2026-04-25T20:30:00.000Z",
@@ -151,7 +151,7 @@
         {
           "id": "u_today_1_2",
           "status": "identified",
-          "body": "The issue has been identified — a recently deployed model router. Rolling back.",
+          "body": "The issue has been identified \u2014 a recently deployed model router. Rolling back.",
           "incident_id": "inc_today_1",
           "created_at": "2026-04-25T14:31:00.000Z",
           "display_at": "2026-04-25T14:31:00.000Z",
@@ -170,46 +170,16 @@
         }
       ],
       "components": [
-        { "id": "cmp_api_messages", "name": "api.anthropic.com – Messages", "status": "degraded_performance" }
-      ]
-    }
-  ],
-  "scheduled_maintenances": [
-    {
-      "id": "mnt_upcoming_1",
-      "name": "Database failover drill",
-      "status": "scheduled",
-      "created_at": "2026-04-23T18:00:00.000Z",
-      "updated_at": "2026-04-23T18:00:00.000Z",
-      "monitoring_at": null,
-      "resolved_at": null,
-      "impact": "maintenance",
-      "shortlink": "https://stspg.io/mnt1",
-      "started_at": "2026-04-27T07:00:00.000Z",
-      "page_id": "wpr1m9glq60g",
-      "scheduled_for": "2026-04-27T07:00:00.000Z",
-      "scheduled_until": "2026-04-27T07:30:00.000Z",
-      "incident_updates": [
         {
-          "id": "u_mnt_1",
-          "status": "scheduled",
-          "body": "Brief failover drill. We expect no customer-visible impact.",
-          "incident_id": "mnt_upcoming_1",
-          "created_at": "2026-04-23T18:00:00.000Z",
-          "display_at": "2026-04-23T18:00:00.000Z",
-          "affected_components": null,
-          "deliver_notifications": true
+          "id": "cmp_api_messages",
+          "name": "api.anthropic.com \u2013 Messages",
+          "status": "degraded_performance"
         }
-      ],
-      "components": [
-        { "id": "cmp_api_messages", "name": "api.anthropic.com – Messages", "status": "operational" }
       ]
-    }
-  ],
-  "past_incidents": [
+    },
     {
       "id": "inc_past_1",
-      "name": "Major outage – claude.ai",
+      "name": "Major outage \u2013 claude.ai",
       "status": "resolved",
       "created_at": "2026-04-24T13:02:00.000Z",
       "updated_at": "2026-04-24T14:55:00.000Z",
@@ -262,8 +232,16 @@
         }
       ],
       "components": [
-        { "id": "cmp_claudeai_web", "name": "claude.ai Web App", "status": "operational" },
-        { "id": "cmp_api_messages", "name": "api.anthropic.com – Messages", "status": "operational" }
+        {
+          "id": "cmp_claudeai_web",
+          "name": "claude.ai Web App",
+          "status": "operational"
+        },
+        {
+          "id": "cmp_api_messages",
+          "name": "api.anthropic.com \u2013 Messages",
+          "status": "operational"
+        }
       ]
     },
     {
@@ -301,7 +279,11 @@
         }
       ],
       "components": [
-        { "id": "cmp_api_messages", "name": "api.anthropic.com – Messages", "status": "operational" }
+        {
+          "id": "cmp_api_messages",
+          "name": "api.anthropic.com \u2013 Messages",
+          "status": "operational"
+        }
       ]
     },
     {
@@ -329,7 +311,47 @@
         }
       ],
       "components": [
-        { "id": "cmp_api_workbench", "name": "console.anthropic.com", "status": "operational" }
+        {
+          "id": "cmp_api_workbench",
+          "name": "console.anthropic.com",
+          "status": "operational"
+        }
+      ]
+    }
+  ],
+  "scheduled_maintenances": [
+    {
+      "id": "mnt_upcoming_1",
+      "name": "Database failover drill",
+      "status": "scheduled",
+      "created_at": "2026-04-23T18:00:00.000Z",
+      "updated_at": "2026-04-23T18:00:00.000Z",
+      "monitoring_at": null,
+      "resolved_at": null,
+      "impact": "maintenance",
+      "shortlink": "https://stspg.io/mnt1",
+      "started_at": "2026-04-27T07:00:00.000Z",
+      "page_id": "wpr1m9glq60g",
+      "scheduled_for": "2026-04-27T07:00:00.000Z",
+      "scheduled_until": "2026-04-27T07:30:00.000Z",
+      "incident_updates": [
+        {
+          "id": "u_mnt_1",
+          "status": "scheduled",
+          "body": "Brief failover drill. We expect no customer-visible impact.",
+          "incident_id": "mnt_upcoming_1",
+          "created_at": "2026-04-23T18:00:00.000Z",
+          "display_at": "2026-04-23T18:00:00.000Z",
+          "affected_components": null,
+          "deliver_notifications": true
+        }
+      ],
+      "components": [
+        {
+          "id": "cmp_api_messages",
+          "name": "api.anthropic.com \u2013 Messages",
+          "status": "operational"
+        }
       ]
     }
   ]
