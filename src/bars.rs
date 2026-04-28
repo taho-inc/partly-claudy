@@ -406,10 +406,10 @@ mod tests {
         let outage_start = now - Duration::hours(2);
         let monitoring_ts = now - Duration::hours(1); // we declare mitigation here
         let resolved_ts = now - Duration::hours(0); // close incident an hour later
-                                                    // Component never gets an explicit "operational" transition; the
-                                                    // last visible status remains partial_outage. The new logic must
-                                                    // stop accruing downtime at monitoring_ts, not span all the way
-                                                    // to resolved_ts.
+        // Component never gets an explicit "operational" transition; the
+        // last visible status remains partial_outage. The new logic must
+        // stop accruing downtime at monitoring_ts, not span all the way
+        // to resolved_ts.
         let inc = Incident {
             id: "i".into(),
             name: "n".into(),

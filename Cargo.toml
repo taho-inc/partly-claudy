@@ -5,6 +5,10 @@ edition = "2024"
 description = "Terminal UI for the Claude status page"
 license = "MIT OR Apache-2.0"
 rust-version = "1.86"
+repository = "https://github.com/taho-inc/partly-claudy"
+homepage = "https://github.com/taho-inc/partly-claudy"
+keywords = ["tui", "ratatui", "claude", "statuspage", "monitoring"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 ratatui = "0.30"

@@ -80,7 +80,7 @@ impl AppTheme {
             }
         }
 
-        tail.sort_by(|a, b| a.display.to_lowercase().cmp(&b.display.to_lowercase()));
+        tail.sort_by_key(|t| t.display.to_lowercase());
         tail.dedup_by(|a, b| a.display == b.display);
         entries.extend(tail);
 

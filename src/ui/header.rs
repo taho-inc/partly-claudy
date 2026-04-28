@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
 
 use crate::app::App;
 
@@ -52,8 +52,8 @@ fn right_status(app: &App) -> Vec<Line<'static>> {
     ]);
 
     let updated = match app.summary.as_ref().map(|s| s.page.updated_at) {
-        Some(t) => format!("page updated {}", relative(t)),
-        None => "page updated never".to_string(),
+        Some(t) => format!("last update: {}", relative(t)),
+        None => "last update: never".to_string(),
     };
     let updated_line = Line::from(vec![Span::styled(
         updated,

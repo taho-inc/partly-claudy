@@ -24,7 +24,11 @@ pub struct EventLoop {
 impl EventLoop {
     pub fn new(source: Source, refresh: Duration, render_tick: Duration) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
-        let me = Self { rx, tx: tx.clone(), source };
+        let me = Self {
+            rx,
+            tx: tx.clone(),
+            source,
+        };
         spawn_input(tx.clone());
         spawn_render_tick(tx.clone(), render_tick);
         spawn_refresh(tx, me.source.clone(), refresh);

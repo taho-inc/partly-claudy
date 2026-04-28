@@ -1,7 +1,7 @@
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::text::Span;
-use ratatui::Frame;
 
 /// Paint ▲/▼ in the right column of `area` when the visible window
 /// hides items above or below. Mirrors the pattern used by

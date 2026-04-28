@@ -1,8 +1,8 @@
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::Frame;
 
 use crate::api::{Impact, Incident, Summary};
 use crate::app::App;
@@ -155,11 +155,7 @@ fn rows(
 }
 
 fn plural(n: usize) -> &'static str {
-    if n == 1 {
-        ""
-    } else {
-        "s"
-    }
+    if n == 1 { "" } else { "s" }
 }
 
 #[cfg(test)]
@@ -167,8 +163,8 @@ mod tests {
     use super::*;
     use crate::api::{Impact, IncidentStatus};
     use chrono::Utc;
-    use ratatui::backend::TestBackend;
     use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
 
     const FIXTURE: &str = include_str!("../../tests/fixtures/summary.json");
 

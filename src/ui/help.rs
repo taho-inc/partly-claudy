@@ -1,8 +1,8 @@
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-use ratatui::Frame;
 
 use crate::app::App;
 
@@ -24,6 +24,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(block, popup);
 
     let muted = Style::default().fg(app.theme.muted());
+    let dim = Style::default().fg(app.theme.dim());
     let key = Style::default()
         .fg(app.theme.accent())
         .add_modifier(Modifier::BOLD);
@@ -46,8 +47,13 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         Line::raw(""),
         Line::from(Span::styled(
             "  Source: status.claude.com (Statuspage v2)",
-            Style::default().fg(app.theme.dim()),
+            dim,
         )),
+        Line::from(vec![
+            Span::styled("  Built by ", dim),
+            Span::styled("TAHO Engineering", key),
+            Span::styled(" · taho.is", dim),
+        ]),
     ];
 
     frame.render_widget(Paragraph::new(lines), inner);

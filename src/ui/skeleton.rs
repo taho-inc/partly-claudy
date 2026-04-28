@@ -1,7 +1,7 @@
+use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::Frame;
 use tui_skeleton::{AnimationMode, Color as SkColor, SkeletonBlock, SkeletonStreamingText};
 
 use crate::app::App;

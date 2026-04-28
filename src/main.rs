@@ -55,7 +55,9 @@ async fn run(
     loop {
         terminal.draw(|frame| ui::render(frame, &mut app))?;
 
-        let Some(ev) = events.rx.recv().await else { break };
+        let Some(ev) = events.rx.recv().await else {
+            break;
+        };
         if let events::AppEvent::Key(k) = &ev {
             if matches!(k.code, crossterm::event::KeyCode::Char('r')) && !app.modal_open() {
                 events.refresh_now();

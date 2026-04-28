@@ -96,7 +96,14 @@ uptime math, and fetch strategy.
 
 ## Testing
 
+CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the same
+gate locally: `cargo fmt --check` → `cargo clippy --all-targets --
+-D warnings` → `cargo test`. All three must pass on push to main and
+on every PR.
+
 - `cargo check` — fast, run after every change.
+- `cargo fmt --check` — must be clean (CI gate; rustfmt with default
+  config). Run `cargo fmt` to fix.
 - `cargo clippy --all-targets -- -D warnings` — must be clean.
 - `cargo test` — 15 tests across `bars::compute`, `services::cells_for_width`,
   and banner rendering against a fixture.
@@ -119,14 +126,39 @@ functions over data.
 ## Living docs
 
 - `features/*.feature` — Gherkin behavior specs (not executed).
-- `README.md` — user-facing install / usage / bindings.
-- [docs/statuspage-api.md](docs/statuspage-api.md) — Statuspage data model + fetch strategy.
+- `README.md` — user-facing install / usage / bindings. Plain language,
+  no implementation jargon, no em-dashes.
+- [docs/statuspage-api.md](docs/statuspage-api.md) — Statuspage data
+  model + fetch strategy.
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `LICENSE-MIT`, `LICENSE-APACHE`
+  — FOSS surface. Copyright held by TAHO Inc; dual licensed MIT OR
+  Apache-2.0.
+- `screenshots/partly-claudy.png` — hero shot referenced in README via
+  `raw.githubusercontent.com/taho-inc/partly-claudy/main/screenshots/`
+  (raw URL hotlinks from external sites; `/blob/main/` does not).
+- [.github/workflows/ci.yml](.github/workflows/ci.yml) — GitHub Actions
+  CI: fmt + clippy + test on Ubuntu stable. README has Crates.io and
+  CI badges; both go green once the workflow runs and `cargo publish`
+  lands the crate.
 
 ## Current Focus
 
 In rest state. The Statuspage-mirror milestone is closed; the UI and
-theme system have settled into the patterns below. Pick from the
-next-up candidates when starting a new arc.
+theme system have settled into the patterns below; the project ships
+with a complete FOSS surface (licenses, contributing, code of conduct,
+screenshot, CI) and crates.io-ready metadata. Pick from the next-up
+candidates when starting a new arc.
+
+### FOSS attribution rules
+
+- Visible TAHO Engineering credit lives in two surfaces: bottom of the
+  in-app help modal ([src/ui/help.rs](src/ui/help.rs)) and the README
+  footer. Don't add more — repetition dilutes.
+- Copyright on both license files is `TAHO Inc` (not a personal name).
+- README is the user front door. Implementation details (file paths,
+  crate names, network mechanics, build commands beyond install/run)
+  belong in [docs/statuspage-api.md](docs/statuspage-api.md) or
+  [CONTRIBUTING.md](CONTRIBUTING.md), not here.
 
 ### Crystallized invariants
 

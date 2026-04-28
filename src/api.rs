@@ -180,8 +180,18 @@ struct HistoryIncident {
 }
 
 const MONTH_NAMES: [&str; 12] = [
-    "January", "February", "March", "April", "May", "June", "July", "August", "September",
-    "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
 ];
 
 /// Returns true when this month's last day is on or after `cutoff` —
@@ -194,8 +204,7 @@ fn month_overlaps(month: &HistoryMonth, cutoff: chrono::NaiveDate) -> bool {
     let last = if m == 12 {
         chrono::NaiveDate::from_ymd_opt(month.year, 12, 31)
     } else {
-        chrono::NaiveDate::from_ymd_opt(month.year, m + 1, 1)
-            .map(|d| d - chrono::Duration::days(1))
+        chrono::NaiveDate::from_ymd_opt(month.year, m + 1, 1).map(|d| d - chrono::Duration::days(1))
     };
     last.is_some_and(|d| d >= cutoff)
 }
@@ -302,7 +311,10 @@ async fn fetch_live(base: &str, http: &reqwest::Client) -> Result<Summary> {
     })
 }
 
-async fn fetch_json<T: serde::de::DeserializeOwned>(http: &reqwest::Client, url: &str) -> Result<T> {
+async fn fetch_json<T: serde::de::DeserializeOwned>(
+    http: &reqwest::Client,
+    url: &str,
+) -> Result<T> {
     http.get(url)
         .send()
         .await

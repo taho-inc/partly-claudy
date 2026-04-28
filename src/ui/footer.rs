@@ -1,8 +1,8 @@
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
 
 use crate::app::{App, Pane};
 
@@ -27,7 +27,15 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                 .fg(app.theme.warning())
                 .add_modifier(Modifier::BOLD),
         )),
-        None => hint_line(app, &[("?", "help"), ("t", "theme"), ("q", "quit")]),
+        None => hint_line(
+            app,
+            &[
+                ("?", "help"),
+                ("r", "refresh"),
+                ("t", "theme"),
+                ("q", "quit"),
+            ],
+        ),
     };
     frame.render_widget(Paragraph::new(right).right_aligned(), cols[1]);
 }
