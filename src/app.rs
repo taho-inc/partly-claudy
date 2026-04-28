@@ -237,6 +237,11 @@ impl App {
             KeyCode::Char('?') => self.help_open = true,
             KeyCode::Char('t') if plain => self.theme_picker_open = true,
             KeyCode::Char('r') if plain => self.begin_refresh(),
+            // Detail modal absorbs movement so the underlying selection
+            // doesn't drift while the user is reading.
+            KeyCode::Up | KeyCode::Down | KeyCode::Left | KeyCode::Right
+                if self.overlay.is_open() => {}
+            KeyCode::Char('h' | 'j' | 'k' | 'l') if plain && self.overlay.is_open() => {}
             KeyCode::Up => self.move_selection(-1),
             KeyCode::Char('k') if plain => self.move_selection(-1),
             KeyCode::Down => self.move_selection(1),

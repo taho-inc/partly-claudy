@@ -133,9 +133,14 @@ functions over data.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `LICENSE-MIT`, `LICENSE-APACHE`
   — FOSS surface. Copyright held by TAHO Inc; dual licensed MIT OR
   Apache-2.0.
-- `screenshots/partly-claudy.png` — hero shot referenced in README via
+- `screenshots/` — README assets (hero gif, future demos). Excluded
+  from the published crate via `exclude = ["screenshots/*"]` in
+  [Cargo.toml](Cargo.toml). Referenced from the README through the
   `raw.githubusercontent.com/taho-inc/partly-claudy/main/screenshots/`
-  (raw URL hotlinks from external sites; `/blob/main/` does not).
+  URL form — that hotlinks; `/blob/main/` does not. Note: crates.io's
+  HTML sanitizer strips `<video>` tags and renders only the first
+  frame of any GIF, so anything more dynamic than a still image only
+  animates on GitHub.
 - [.github/workflows/ci.yml](.github/workflows/ci.yml) — GitHub Actions
   CI: fmt + clippy + test on Ubuntu stable. README has Crates.io and
   CI badges; both go green once the workflow runs and `cargo publish`
@@ -146,8 +151,9 @@ functions over data.
 In rest state. The Statuspage-mirror milestone is closed; the UI and
 theme system have settled into the patterns below; the project ships
 with a complete FOSS surface (licenses, contributing, code of conduct,
-screenshot, CI) and crates.io-ready metadata. Pick from the next-up
-candidates when starting a new arc.
+screenshot, CI). Published as `partly-claudy v0.1.0` on crates.io,
+tagged `v0.1.0` on `origin/main`. Pick from the next-up candidates
+when starting a new arc.
 
 ### FOSS attribution rules
 
@@ -176,6 +182,16 @@ candidates when starting a new arc.
   [src/events.rs](src/events.rs).
 - Loading state is `summary.is_none() || refreshing`. The `r` key
   promotes via `App::begin_refresh`, which rewinds skeleton timing.
+- When `overlay.is_open()`, arrow keys + hjkl are no-ops in
+  [src/app.rs::handle_key](src/app.rs). The detail modal absorbs
+  movement so the underlying selection stays put while the user reads.
+  Esc / q / ? / r / Tab still work through the overlay.
+- The bar-row cursor in [src/ui/services.rs::render_bar_row](src/ui/services.rs)
+  highlights exactly one cell — the leftmost cell mapping to
+  `app.bars_day`. The stretch math in `cells_for_width` gives
+  individual days 1-2 cells of bar width when `area.width` doesn't
+  divide evenly by 90; reversing all matching cells would produce
+  inconsistent 1-2 cell cursor widths.
 
 ### Next-up candidates
 

@@ -137,11 +137,18 @@ fn render_name_row(frame: &mut Frame, area: Rect, app: &App, focused: bool, comp
 
 fn render_bar_row(frame: &mut Frame, area: Rect, app: &App, focused: bool, row: &UptimeRow) {
     let cells = cells_for_width(row, area.width as usize);
+    // When the bar is wider than the 90-day window, a single day spans
+    // multiple cells. Highlight only the leftmost cell so the cursor is
+    // a consistent 1-cell marker.
+    let cursor = focused
+        .then(|| cells.iter().position(|(day, _)| *day == app.bars_day))
+        .flatten();
     let spans: Vec<Span> = cells
         .iter()
-        .map(|(day, ds)| {
+        .enumerate()
+        .map(|(i, (_, ds))| {
             let mut style = Style::default().fg(day_color(app, *ds));
-            if focused && *day == app.bars_day {
+            if Some(i) == cursor {
                 style = style.add_modifier(Modifier::REVERSED);
             }
             Span::styled("▮", style)

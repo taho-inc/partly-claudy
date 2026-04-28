@@ -7,7 +7,7 @@
 
 A terminal app for the Claude status page. See if Claude is up without leaving your terminal.
 
-![partly-claudy screenshot](https://raw.githubusercontent.com/taho-inc/partly-claudy/main/screenshots/partly-claudy.png)
+![partly-claudy demo](https://raw.githubusercontent.com/taho-inc/partly-claudy/main/screenshots/partly-claudy.gif)
 
 ## Features
 

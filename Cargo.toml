@@ -9,6 +9,9 @@ repository = "https://github.com/taho-inc/partly-claudy"
 homepage = "https://github.com/taho-inc/partly-claudy"
 keywords = ["tui", "ratatui", "claude", "statuspage", "monitoring"]
 categories = ["command-line-utilities"]
+# Screenshots / gifs are README assets only — fetched from GitHub via
+# the raw URL on crates.io, not needed in the published tarball.
+exclude = ["screenshots/*"]
 
 [dependencies]
 ratatui = "0.30"
