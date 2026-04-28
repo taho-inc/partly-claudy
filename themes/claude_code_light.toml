@@ -1,0 +1,88 @@
+[meta]
+name = "Claude Code Light"
+author = "ashwingopalsamy (Opaline mapping by TAHO)"
+variant = "light"
+version = "0.1.0"
+description = "Claude Code light — warm clay accent on cream"
+
+[palette]
+clay = "#CC785C"
+clay_deep = "#A85939"
+rust = "#C96442"
+amber = "#8A6220"
+
+bg_editor = "#FAF9F5"
+bg_widget = "#F3F1E9"
+bg_panel = "#F0EEE6"
+bg_status = "#EAE7DF"
+bg_select = "#F0DACD"
+
+fg_primary = "#1A1917"
+fg_description = "#6B665F"
+fg_muted = "#8D877D"
+fg_disabled = "#A9A39A"
+border_widget = "#D9D5CC"
+
+green = "#2E7C4C"
+yellow = "#8A6220"
+red = "#A84B3A"
+blue = "#207FDE"
+cyan = "#2E5F99"
+magenta = "#6A5BCC"
+
+white = "#FFFFFF"
+
+[tokens]
+"text.primary" = "fg_primary"
+"text.secondary" = "fg_description"
+"text.muted" = "fg_muted"
+"text.dim" = "fg_disabled"
+
+"bg.base" = "bg_editor"
+"bg.panel" = "bg_widget"
+"bg.code" = "bg_panel"
+"bg.highlight" = "bg_status"
+"bg.selection" = "bg_select"
+
+"accent.primary" = "clay"
+"accent.secondary" = "rust"
+"accent.tertiary" = "amber"
+"accent.deep" = "clay_deep"
+
+"success" = "green"
+"error" = "red"
+"warning" = "yellow"
+"info" = "cyan"
+
+"border.focused" = "clay"
+"border.unfocused" = "border_widget"
+
+"code.keyword" = "magenta"
+"code.function" = "cyan"
+"code.string" = "green"
+"code.number" = "yellow"
+"code.comment" = "fg_description"
+"code.type" = "red"
+"code.line_number" = "fg_disabled"
+
+[styles]
+keyword = { fg = "code.keyword", bold = true }
+line_number = { fg = "text.dim" }
+selected = { fg = "text.primary", bg = "bg.selection" }
+active_selected = { fg = "white", bg = "accent.primary", bold = true }
+focused_border = { fg = "border.focused" }
+unfocused_border = { fg = "border.unfocused" }
+success_style = { fg = "success" }
+error_style = { fg = "error" }
+warning_style = { fg = "warning" }
+info_style = { fg = "info" }
+dimmed = { fg = "text.dim" }
+muted = { fg = "text.muted" }
+inline_code = { fg = "text.primary", bg = "bg.code" }
+
+[gradients]
+primary = ["clay", "clay_deep"]
+warm = ["amber", "clay", "clay_deep"]
+success_gradient = ["green", "cyan"]
+error_gradient = ["red", "clay_deep"]
+aurora = ["magenta", "blue", "cyan", "green", "amber"]

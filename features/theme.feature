@@ -34,6 +34,6 @@ Feature: Theme support via opaline
     And maintenance windows use the "info" token
 
   Scenario: User-supplied themes are discoverable (future)
-    Given a TOML file at "~/.config/claude-status/themes/my-theme.toml"
+    Given a TOML file at "~/.config/partly-claudy/themes/my-theme.toml"
     Then the app discovers it via opaline's `discovery` feature
     And it appears in the theme picker alongside the builtins

@@ -1,5 +1,5 @@
 [package]
-name = "claude-status"
+name = "partly-claudy"
 version = "0.1.0"
 edition = "2024"
 description = "Terminal UI for the Claude status page"
@@ -20,6 +20,7 @@ clap = { version = "4", features = ["derive"] }
 tui-overlay = "0.1"
 tui-skeleton = "0.3"
 opaline = { version = "0.4", features = ["builtin-themes", "ratatui", "discovery"] }
+toml = "0.8"
 
 [profile.release]
 lto = "thin"

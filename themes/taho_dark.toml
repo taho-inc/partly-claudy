@@ -1,0 +1,87 @@
+[meta]
+name = "TAHO Dark"
+author = "TAHO"
+variant = "dark"
+version = "0.1.0"
+description = "Deep purple brand theme — dark variant"
+
+[palette]
+deep_purple = "#2E1574"
+vivid_purple = "#7834F5"
+electric_yellow = "#F8F32B"
+deep_gold = "#8A6B00"
+flame = "#F46036"
+hot_pink = "#F62DAE"
+cool_gray = "#8D99AE"
+mint = "#44BBA4"
+lilac = "#A878FF"
+
+surface_base = "#0D0623"
+surface_panel = "#31284E"
+surface_code = "#1E163A"
+highlight_surface = "#1E1048"
+muted_border = "#4A4060"
+
+white = "#FFFFFF"
+text_secondary = "#A1A1AA"
+text_tertiary = "#9494A0"
+dim = "#5C5670"
+
+green = "#4ADE80"
+amber = "#FBBF24"
+rose = "#FB7185"
+
+[tokens]
+"text.primary" = "white"
+"text.secondary" = "text_secondary"
+"text.muted" = "text_tertiary"
+"text.dim" = "dim"
+
+"bg.base" = "surface_base"
+"bg.panel" = "surface_panel"
+"bg.code" = "surface_code"
+"bg.highlight" = "highlight_surface"
+"bg.selection" = "deep_purple"
+
+"accent.primary" = "vivid_purple"
+"accent.secondary" = "deep_purple"
+"accent.tertiary" = "electric_yellow"
+"accent.deep" = "deep_purple"
+
+"success" = "green"
+"error" = "rose"
+"warning" = "amber"
+"info" = "mint"
+
+"border.focused" = "vivid_purple"
+"border.unfocused" = "muted_border"
+
+"code.keyword" = "lilac"
+"code.function" = "mint"
+"code.string" = "green"
+"code.number" = "electric_yellow"
+"code.comment" = "text_tertiary"
+"code.type" = "flame"
+"code.line_number" = "text_tertiary"
+
+[styles]
+keyword = { fg = "code.keyword", bold = true }
+line_number = { fg = "text.dim" }
+selected = { fg = "text.primary", bg = "bg.selection" }
+active_selected = { fg = "text.primary", bg = "accent.primary", bold = true }
+focused_border = { fg = "border.focused" }
+unfocused_border = { fg = "border.unfocused" }
+success_style = { fg = "success" }
+error_style = { fg = "error" }
+warning_style = { fg = "warning" }
+info_style = { fg = "info" }
+dimmed = { fg = "text.dim" }
+muted = { fg = "text.muted" }
+inline_code = { fg = "text.primary", bg = "bg.code" }
+
+[gradients]
+primary = ["vivid_purple", "deep_purple"]
+warm = ["hot_pink", "flame", "electric_yellow"]
+success_gradient = ["green", "mint"]
+error_gradient = ["rose", "flame"]
+aurora = ["vivid_purple", "hot_pink", "flame", "electric_yellow", "mint"]

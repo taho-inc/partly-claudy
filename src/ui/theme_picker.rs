@@ -32,19 +32,24 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let inner = block.inner(popup);
     frame.render_widget(block, popup);
 
+    let list_area = Rect {
+        width: inner.width.saturating_sub(1),
+        ..inner
+    };
     let items: Vec<ListItem> = app
         .theme
-        .builtins
+        .entries
         .iter()
-        .map(|(_, name)| {
+        .map(|entry| {
             ListItem::new(Line::from(Span::styled(
-                name.to_string(),
+                entry.display.clone(),
                 Style::default().fg(app.theme.text()),
             )))
         })
         .collect();
+    let total_items = items.len();
     let mut state = ListState::default();
-    state.select(Some(app.theme.selected));
+    state.select(Some(app.theme.cursor));
     let list = List::new(items)
         .highlight_style(
             Style::default()
@@ -52,7 +57,16 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD | Modifier::REVERSED),
         )
         .highlight_symbol(Line::from(" ▶ "));
-    frame.render_stateful_widget(list, inner, &mut state);
+    frame.render_stateful_widget(list, list_area, &mut state);
+
+    crate::ui::scroll::overlay(
+        frame,
+        inner,
+        state.offset(),
+        list_area.height as usize,
+        total_items,
+        app.theme.dim(),
+    );
 }
 
 fn centered(area: Rect, width: u16, height: u16) -> Rect {

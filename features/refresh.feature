@@ -28,10 +28,10 @@ Feature: Data refresh
     And the last successful timestamp is preserved
 
   Scenario: Custom refresh interval via flag
-    When the user runs `claude-status --refresh 30`
+    When the user runs `partly-claudy --refresh 30`
     Then auto-refresh fires every 30 seconds instead of every 60
 
   Scenario: Fixture mode reloads from disk
-    Given the user runs `claude-status --fixture <path>`
+    Given the user runs `partly-claudy --fixture <path>`
     When the user presses `r`
     Then the file is re-read and the UI updates from the new contents

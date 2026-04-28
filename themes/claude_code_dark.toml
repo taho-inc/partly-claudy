@@ -1,0 +1,88 @@
+[meta]
+name = "Claude Code Dark"
+author = "ashwingopalsamy (Opaline mapping by TAHO)"
+variant = "dark"
+version = "0.1.0"
+description = "Claude Code dark theme — warm peach accent on charcoal"
+
+[palette]
+peach = "#D4967E"
+peach_deep = "#C96442"
+peach_dark = "#AE4E30"
+amber = "#E8C96B"
+
+bg_editor = "#141413"
+bg_widget = "#1F1D1A"
+bg_panel = "#1A1917"
+bg_status = "#2B2A27"
+bg_select = "#3A2620"
+
+fg_primary = "#EAE7DF"
+fg_description = "#A9A39A"
+fg_muted = "#8D877D"
+fg_disabled = "#6B665F"
+border_widget = "#4A473F"
+
+green = "#9ACA86"
+yellow = "#E8C96B"
+red = "#D47563"
+blue = "#61AAF2"
+cyan = "#8CC4FF"
+magenta = "#9B87F5"
+
+white = "#FFFFFF"
+
+[tokens]
+"text.primary" = "fg_primary"
+"text.secondary" = "fg_description"
+"text.muted" = "fg_muted"
+"text.dim" = "fg_disabled"
+
+"bg.base" = "bg_editor"
+"bg.panel" = "bg_widget"
+"bg.code" = "bg_panel"
+"bg.highlight" = "bg_status"
+"bg.selection" = "bg_select"
+
+"accent.primary" = "peach"
+"accent.secondary" = "peach_deep"
+"accent.tertiary" = "amber"
+"accent.deep" = "peach_dark"
+
+"success" = "green"
+"error" = "red"
+"warning" = "yellow"
+"info" = "cyan"
+
+"border.focused" = "peach"
+"border.unfocused" = "border_widget"
+
+"code.keyword" = "magenta"
+"code.function" = "blue"
+"code.string" = "green"
+"code.number" = "yellow"
+"code.comment" = "fg_description"
+"code.type" = "red"
+"code.line_number" = "fg_disabled"
+
+[styles]
+keyword = { fg = "code.keyword", bold = true }
+line_number = { fg = "text.dim" }
+selected = { fg = "text.primary", bg = "bg.selection" }
+active_selected = { fg = "text.primary", bg = "accent.primary", bold = true }
+focused_border = { fg = "border.focused" }
+unfocused_border = { fg = "border.unfocused" }
+success_style = { fg = "success" }
+error_style = { fg = "error" }
+warning_style = { fg = "warning" }
+info_style = { fg = "info" }
+dimmed = { fg = "text.dim" }
+muted = { fg = "text.muted" }
+inline_code = { fg = "text.primary", bg = "bg.code" }
+
+[gradients]
+primary = ["peach", "peach_deep"]
+warm = ["amber", "peach", "peach_deep"]
+success_gradient = ["green", "cyan"]
+error_gradient = ["red", "peach_deep"]
+aurora = ["magenta", "blue", "cyan", "green", "amber"]

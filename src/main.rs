@@ -48,7 +48,7 @@ async fn run(
     source: api::Source,
     refresh: Duration,
 ) -> Result<()> {
-    let theme = theme::AppTheme::default_builtin();
+    let theme = theme::AppTheme::load();
     let mut app = app::App::new(theme);
     let mut events = events::EventLoop::new(source, refresh, Duration::from_millis(80));
 
@@ -57,7 +57,7 @@ async fn run(
 
         let Some(ev) = events.rx.recv().await else { break };
         if let events::AppEvent::Key(k) = &ev {
-            if matches!(k.code, crossterm::event::KeyCode::Char('r')) {
+            if matches!(k.code, crossterm::event::KeyCode::Char('r')) && !app.modal_open() {
                 events.refresh_now();
             }
         }

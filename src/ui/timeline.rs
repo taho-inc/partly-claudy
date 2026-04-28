@@ -1,7 +1,7 @@
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState};
+use ratatui::widgets::{List, ListItem, ListState};
 use ratatui::Frame;
 
 use crate::api::{Incident, IncidentStatus};
@@ -9,22 +9,28 @@ use crate::app::{App, Pane};
 use crate::ui::skeleton;
 
 pub fn render(frame: &mut Frame, area: Rect, app: &App) {
-    let focused = matches!(app.focus, Pane::Events);
-    let block = Block::default()
-        .title(crate::ui::services::pane_title(
-            " Events ", focused, &app.theme,
-        ))
-        .borders(Borders::ALL)
-        .border_style(if focused {
-            app.theme.focused_border()
-        } else {
-            app.theme.unfocused_border()
-        });
+    let focused = matches!(app.focus, Pane::Incidents);
+    let mut block = crate::ui::services::pane_block(" Incidents ", focused, &app.theme);
+
+    if let Some(svc) = app.selected_service() {
+        let scope = Line::from(vec![
+            Span::styled(" for ", Style::default().fg(app.theme.dim())),
+            Span::styled(
+                svc.name.clone(),
+                Style::default()
+                    .fg(app.theme.accent())
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" ", Style::default().fg(app.theme.dim())),
+        ])
+        .right_aligned();
+        block = block.title_top(scope);
+    }
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
     if app.is_loading() {
-        skeleton::render_list(frame, inner, app, 8);
+        skeleton::render_incidents(frame, inner, app);
         return;
     }
 
@@ -36,7 +42,11 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         return;
     }
 
-    let name_budget = name_budget_for(inner.width);
+    let list_area = Rect {
+        width: inner.width.saturating_sub(1),
+        ..inner
+    };
+    let name_budget = name_budget_for(list_area.width);
     let mut items: Vec<ListItem> = Vec::new();
     let mut flat_index: Vec<Option<usize>> = Vec::new();
     let mut counter = 0usize;
@@ -55,7 +65,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         if day.is_empty() {
             items.push(ListItem::new(Line::from(vec![
                 Span::raw("   "),
-                Span::styled("(no events)", Style::default().fg(app.theme.dim())),
+                Span::styled("(no incidents)", Style::default().fg(app.theme.dim())),
             ])));
             flat_index.push(None);
         } else {
@@ -67,6 +77,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         }
     }
 
+    let total_items = items.len();
     let mut state = ListState::default();
     let target = flat_index
         .iter()
@@ -81,7 +92,16 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD | Modifier::REVERSED),
         )
         .highlight_symbol(Line::from(" ▶ "));
-    frame.render_stateful_widget(list, inner, &mut state);
+    frame.render_stateful_widget(list, list_area, &mut state);
+
+    crate::ui::scroll::overlay(
+        frame,
+        inner,
+        state.offset(),
+        list_area.height as usize,
+        total_items,
+        app.theme.dim(),
+    );
 }
 
 fn incident_line<'a>(app: &App, inc: &'a Incident, name_budget: usize) -> Line<'a> {

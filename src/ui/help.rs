@@ -31,7 +31,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let lines = vec![
         row(" q / Ctrl-c", "quit", key, muted),
         row(" Esc        ", "close modal · then quit", key, muted),
-        row(" Tab / ⇧Tab  ", "toggle Services ↔ Events", key, muted),
+        row(" Tab / ⇧Tab  ", "toggle Services ↔ Incidents", key, muted),
         row(" ↑ ↓ k j    ", "move selection in focused pane", key, muted),
         row(
             " ← → h l    ",

@@ -13,7 +13,7 @@ use crate::theme::AppTheme;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pane {
     Services,
-    Events,
+    Incidents,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,6 +42,8 @@ pub struct App {
     pub quit: bool,
     pub status_toast: Option<String>,
     pub toast_until: Option<Instant>,
+    pub refreshing: bool,
+    pub refresh_started_at: Option<Instant>,
 }
 
 impl App {
@@ -65,15 +67,31 @@ impl App {
             quit: false,
             status_toast: None,
             toast_until: None,
+            refreshing: false,
+            refresh_started_at: None,
         }
     }
 
-    pub fn elapsed_ms(&self) -> u64 {
-        self.started_at.elapsed().as_millis() as u64
+    /// Milliseconds since the current refresh began, or since app start
+    /// when no refresh is in flight. Drives skeleton animation timing so
+    /// streaming text replays from zero on each manual refresh.
+    pub fn loading_elapsed_ms(&self) -> u64 {
+        let anchor = self.refresh_started_at.unwrap_or(self.started_at);
+        anchor.elapsed().as_millis() as u64
     }
 
     pub fn is_loading(&self) -> bool {
-        self.summary.is_none()
+        self.summary.is_none() || self.refreshing
+    }
+
+    pub fn modal_open(&self) -> bool {
+        self.help_open || self.theme_picker_open || self.overlay.is_open()
+    }
+
+    pub fn begin_refresh(&mut self) {
+        self.refreshing = true;
+        self.refresh_started_at = Some(Instant::now());
+        self.toast("refreshing...".into());
     }
 
     pub fn services(&self) -> Vec<&Component> {
@@ -154,18 +172,21 @@ impl App {
                         self.toast_until = None;
                     }
                 }
+                self.theme.tick();
             }
             AppEvent::Resize => {}
             AppEvent::Loaded(s) => {
                 self.last_loaded_at = Some(Utc::now());
                 self.last_attempt_at = Some(Instant::now());
                 self.error = None;
+                self.refreshing = false;
                 self.bars = bars::compute(&s.components, &s.incidents, bars::today_utc());
                 self.summary = Some(*s);
             }
             AppEvent::LoadFailed(e) => {
                 self.last_attempt_at = Some(Instant::now());
                 self.error = Some(e.clone());
+                self.refreshing = false;
                 self.toast(format!("refresh failed: {e}"));
             }
             AppEvent::Key(k) => self.handle_key(k),
@@ -189,12 +210,12 @@ impl App {
         }
         if self.theme_picker_open {
             match k.code {
-                KeyCode::Esc | KeyCode::Char('t') | KeyCode::Char('q') => {
-                    self.theme_picker_open = false
+                KeyCode::Esc | KeyCode::Char('t') | KeyCode::Char('q') | KeyCode::Enter => {
+                    self.theme.commit_preview();
+                    self.theme_picker_open = false;
                 }
                 KeyCode::Up | KeyCode::Char('k') => self.theme.cycle(-1),
                 KeyCode::Down | KeyCode::Char('j') => self.theme.cycle(1),
-                KeyCode::Enter => self.theme_picker_open = false,
                 _ => {}
             }
             return;
@@ -215,7 +236,7 @@ impl App {
             KeyCode::BackTab => self.cycle_focus(-1),
             KeyCode::Char('?') => self.help_open = true,
             KeyCode::Char('t') if plain => self.theme_picker_open = true,
-            KeyCode::Char('r') if plain => self.toast("refreshing...".into()),
+            KeyCode::Char('r') if plain => self.begin_refresh(),
             KeyCode::Up => self.move_selection(-1),
             KeyCode::Char('k') if plain => self.move_selection(-1),
             KeyCode::Down => self.move_selection(1),
@@ -231,8 +252,8 @@ impl App {
 
     fn cycle_focus(&mut self, _dir: i8) {
         self.focus = match self.focus {
-            Pane::Services => Pane::Events,
-            Pane::Events => Pane::Services,
+            Pane::Services => Pane::Incidents,
+            Pane::Incidents => Pane::Services,
         };
     }
 
@@ -246,12 +267,12 @@ impl App {
                 self.service_idx = wrap(self.service_idx, dir, n);
                 self.event_idx = 0;
             }
-            Pane::Events => {
+            Pane::Incidents => {
                 let n = self.flat_incidents().len();
                 if n == 0 {
                     return;
                 }
-                self.event_idx = wrap(self.event_idx, dir, n);
+                self.event_idx = clamp_step(self.event_idx, dir, n);
             }
         }
     }
@@ -273,7 +294,7 @@ impl App {
                 };
                 self.overlay.open();
             }
-            Pane::Events => {
+            Pane::Incidents => {
                 if let Some(i) = self.flat_incidents().get(self.event_idx) {
                     self.modal_target = ModalTarget::Incident(i.id.clone());
                     self.overlay.open();
@@ -298,6 +319,14 @@ fn wrap(idx: usize, dir: i8, len: usize) -> usize {
     } else {
         next as usize
     }
+}
+
+fn clamp_step(idx: usize, dir: i8, len: usize) -> usize {
+    if len == 0 {
+        return 0;
+    }
+    let next = idx as isize + dir as isize;
+    next.clamp(0, len as isize - 1) as usize
 }
 
 fn day_label(d: NaiveDate) -> String {

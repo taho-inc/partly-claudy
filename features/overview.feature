@@ -5,7 +5,7 @@ Feature: At-a-glance overall status
 
   Background:
     Given the Claude Statuspage v2 API is reachable at https://status.claude.com
-    And the user runs `claude-status`
+    And the user runs `partly-claudy`
 
   Scenario: Cold start shows skeleton placeholders
     Given the app has just launched and no data has loaded yet

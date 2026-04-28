@@ -203,14 +203,14 @@ mod tests {
 
     #[test]
     fn empty_when_nothing_active() {
-        let theme = AppTheme::default_builtin();
+        let theme = AppTheme::load();
         let out = rows(&theme, &[], 3, |_| theme.text(), "active incident");
         assert!(out.is_empty());
     }
 
     #[test]
     fn caps_with_overflow_summary() {
-        let theme = AppTheme::default_builtin();
+        let theme = AppTheme::load();
         let a = incident("a", Impact::Major, IncidentStatus::Investigating);
         let b = incident("b", Impact::Minor, IncidentStatus::Identified);
         let c = incident("c", Impact::Critical, IncidentStatus::Investigating);
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn renders_fixture() {
         let summary: Summary = serde_json::from_str(FIXTURE).expect("parse fixture");
-        let theme = AppTheme::default_builtin();
+        let theme = AppTheme::load();
         let lines = lines_for(&theme, &summary);
 
         let backend = TestBackend::new(80, lines.len() as u16);
@@ -250,7 +250,7 @@ mod tests {
 
     #[test]
     fn alert_picks_highest_active_impact() {
-        let theme = AppTheme::default_builtin();
+        let theme = AppTheme::load();
         let summary = Summary {
             page: crate::api::Page {
                 id: "p".into(),
@@ -277,7 +277,7 @@ mod tests {
 
     #[test]
     fn alert_falls_back_to_info_for_maintenance_only() {
-        let theme = AppTheme::default_builtin();
+        let theme = AppTheme::load();
         let max = None;
         assert_eq!(alert_color(&theme, max), theme.info());
         assert_eq!(alert_title(false), "Scheduled Maintenance");

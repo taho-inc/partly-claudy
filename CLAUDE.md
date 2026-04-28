@@ -1,4 +1,4 @@
-# claude-status — agent guide
+# partly-claudy — agent guide
 
 Terminal UI for the Claude status page (Statuspage v2 API). Single binary,
 async tokio + ratatui 0.30. Read this before making non-trivial changes.
@@ -11,119 +11,100 @@ src/api.rs      Statuspage v2 DTOs + Source { Live, Fixture } async fetch_summar
 src/bars.rs     compute(components, incidents, today) → Vec<UptimeRow> for 90-day bars
 src/events.rs   EventLoop spawns 3 tokio tasks (input / render tick / refresh)
                 merges into mpsc<AppEvent> { Key, Tick, Resize, Loaded, LoadFailed }
-src/app.rs      App state + handle(AppEvent) reducer (no I/O), Pane enum, ModalTarget
-src/theme.rs    AppTheme wraps opaline::Theme, exposes semantic colors
+src/app.rs      App state + handle(AppEvent) reducer (no I/O), Pane { Services, Incidents }
+src/theme.rs    AppTheme — pinned + embedded + opaline + ~/.taho/themes/ discovery
 src/ui/mod.rs   render(frame, &mut app) — header / banner / body / footer + modal
 src/ui/*.rs     header, banner, services (dot+name+bars+pct+meta per row),
-                timeline, modal, footer, help, theme_picker, skeleton
+                timeline (Incidents), modal, footer, help, theme_picker, scroll, skeleton
+themes/*.toml   embedded Opaline themes (TAHO + Claude Code variants)
 ```
 
-The reducer in `app.rs` is pure: no I/O, no async. All network/disk work is
-in `events.rs`, which posts results back through the channel as
-`AppEvent::Loaded(Box<Summary>)` or `AppEvent::LoadFailed(String)`. UI
-state lives entirely on `App`.
+The reducer in [src/app.rs](src/app.rs) is pure: no I/O, no async. All
+network/disk work is in [src/events.rs](src/events.rs), which posts results
+back through the channel as `AppEvent::Loaded(Box<Summary>)` or
+`AppEvent::LoadFailed(String)`. UI state lives entirely on `App`.
 
-## Key crates and how we use them
+## Key crates
 
 - **ratatui 0.30** — `ratatui::init()` / `ratatui::restore()` for terminal
-  lifecycle. `Layout::vertical(...)` / `Layout::horizontal(...)` for
-  splits. We do **not** use the renamed `HorizontalAlignment` directly;
-  `.right_aligned()` / `.left_aligned()` on `Paragraph` is enough.
+  lifecycle. `Layout::vertical(...)` / `Layout::horizontal(...)` for splits.
+  `.right_aligned()` / `.left_aligned()` on `Paragraph` (do not use the
+  renamed `HorizontalAlignment` directly).
 - **tui-overlay 0.1** — `Overlay::new().anchor(Anchor::Center).slide(Slide::Top)`
   for the detail modal, with an `OverlayState` on `App`. Render order:
   main UI first, then `frame.render_stateful_widget(overlay, area, &mut state)`,
   then read `state.inner_area()` and render the modal body into it. Tick
   the state every frame from `App::handle(AppEvent::Tick)`. Modal opens
   on Enter, closes on Esc.
-- **tui-skeleton 0.3** — stateless `SkeletonList::new(elapsed_ms)`, pass
-  `app.elapsed_ms()`. Wrapped in `src/ui/skeleton.rs` with a
-  `ratatui::Color → tui_skeleton::Color` adapter (the crate re-exports its
-  own `Color` enum, not ratatui's).
-- **opaline 0.4** — `opaline::builtins::silkcircuit_neon()` is the default.
-  Themes resolve semantic tokens: `success`, `warning`, `error` (we treat
-  as `danger`), `info`. Background tokens: `bg.base`, `bg.panel`. Text
-  tokens: `text.primary`, `text.muted`, `text.dim`. Accent:
-  `accent.primary`. **Do not** hardcode `Color::Red`/`Color::Green`
-  anywhere — go through `AppTheme`.
+- **tui-skeleton 0.3** — used by [src/ui/skeleton.rs](src/ui/skeleton.rs).
+  `SkeletonBlock` for solid + braille panels (uptime bar uses
+  `.braille(true)`). `SkeletonStreamingText` for incident bullet rows
+  (typewriter fill, `repeat(true)` keeps it cycling). `elapsed_ms`
+  comes from `App::loading_elapsed_ms()` which rewinds to
+  `refresh_started_at` on manual refresh — stream replays from frame 0.
+- **opaline 0.4** — token-based theme engine. Themes in
+  [themes/](themes/) are `include_str!`'d at compile time. Discovery
+  walks `~/.taho/themes/` so user themes are shared with taho-admin.
+  Selection persists to `~/.taho/partly-claudy/settings.toml`. Tokens
+  resolved via `AppTheme` (`bg`, `panel_bg`, `text`, `muted`, `dim`,
+  `accent`, `success`, `warning`, `danger`, `info`). **Do not** hardcode
+  `Color::Red`/`Color::Green` — go through `AppTheme`.
 
 ## Adding a new pane / widget
 
 1. Add a file under `src/ui/`. Pattern: `pub fn render(frame, area, app)`.
-2. If the widget needs focus, add a variant to `Pane` in `app.rs` and
-   include it in `cycle_focus`'s order array.
-3. Borrow colors from `AppTheme` — never hardcode RGB.
-4. If the widget shows live data, render `skeleton::render_list(...)` when
-   `app.is_loading()` (i.e. `app.summary.is_none()`).
+2. If the widget needs focus, add a variant to `Pane` in
+   [src/app.rs](src/app.rs) and include it in `cycle_focus`'s order.
+3. Use [`services::pane_block`](src/ui/services.rs) for the chrome —
+   it bundles the rounded border, focus-dependent border color, and
+   the `pane_title` leader. Add right-aligned context with
+   `.title_top(Line::from(...).right_aligned())`.
+4. Borrow colors from `AppTheme` — never hardcode RGB.
+5. If the widget shows live data, render a bespoke skeleton when
+   `app.is_loading()`. See `skeleton::render_services` /
+   `render_incidents` — generic shimmer is anti-pattern; reproduce
+   the loaded shape so the layout doesn't reflow on first data.
+6. For scroll affordance, use [`scroll::overlay`](src/ui/scroll.rs)
+   after `render_stateful_widget` — read `ListState::offset()` to
+   detect items above/below the visible window. Reserve a 1-cell
+   gutter on the right so indicators don't clobber content.
 
 ## Adding a new event source
 
-All async work happens in `events.rs`. To add a new background source
-(e.g. Statuspage incidents history), spawn another tokio task in
-`EventLoop::new`, add a variant to `AppEvent`, and handle it in
-`App::handle`. Keep the reducer pure.
+All async work happens in [src/events.rs](src/events.rs). Spawn another
+tokio task in `EventLoop::new`, add a variant to `AppEvent`, and handle
+it in `App::handle`. Keep the reducer pure.
 
-## Statuspage API notes
+## Refresh & loading state
 
-We hit `https://status.claude.com/api/v2/summary.json`. The response is
-documented at `https://status.claude.com/api#javascript-library` — note
-that the same shape is used by every Atlassian Statuspage tenant. Real
-fields we rely on:
+- `r` key in main view fires `events.refresh_now()` and calls
+  `app.begin_refresh()` (which sets `refreshing = true`,
+  stamps `refresh_started_at`, toasts "refreshing..."). Gated on
+  `!app.modal_open()` so it doesn't fire under help/theme picker/modal.
+- `Loaded` and `LoadFailed` clear `refreshing`. On `LoadFailed` the prior
+  data stays visible — `refreshing` flips false but `summary` is preserved.
+- `is_loading()` returns true during initial load (no summary) **and**
+  during in-flight refresh — skeleton replays in both states.
+- The Services pane height is sized via `services::SKELETON_ROWS` (= 6,
+  the typical Statuspage tenant) when `is_loading()`, so the skeleton has
+  vertical room before the first fetch returns.
 
-- `status.indicator` — `"none" | "minor" | "major" | "critical"` (we also
-  accept `"maintenance"` as a fallback).
-- `components[]` — `id`, `name`, `status`, `group_id`, `group: bool`,
-  `position`, `created_at`. `group: true` means a top-level grouping.
-- `incidents[]` — populated by [`api::fetch_live`](src/api.rs) from
-  three merged sources: `/api/v2/summary.json` (page meta +
-  scheduled_maintenances), `/api/v2/incidents.json` (typed, ~50 most
-  recent), and per-incident detail fetches for older codes discovered
-  via `/history.json?page=N` (undocumented; codes only). Each
-  incident carries `started_at`, `resolved_at`, `impact`,
-  `components[]`, `incident_updates[]` (with `affected_components[]`
-  recording per-component status transitions).
+## Statuspage API
 
-Uptime math (`bars::compute` + `accumulate_component_downtime`):
-
-- Walk each incident's `incident_updates[*].affected_components[]`
-  to build a per-component status timeline. Each transition opens a
-  span ending at the next transition (same component) or earlier.
-- Cap every span at the incident's **mitigation timestamp** —
-  earliest update reaching `Monitoring | Resolved | Postmortem`.
-  Statuspage stops counting downtime once an incident moves past
-  identification, even if the affected_components payload still
-  reads partial_outage during verification.
-- Span weight: `major_outage → 1.0`, `partial_outage → 0.5`,
-  everything else (degraded_performance, under_maintenance,
-  operational) → 0.0.
-- `Impact::None` and `Impact::Maintenance` incidents are skipped.
-
-This matches Statuspage's published per-component 90-day uptime
-within ~0.2 percentage points across all six Claude services
-(verified by reverse-engineering the JSON embedded in their home
-page HTML). We don't call the paid `/components/{id}/uptime` endpoint.
-
-Fetch strategy:
-
-- Phase 1: `summary.json` + `incidents.json` + 2 history pages in
-  parallel (`tokio::try_join!` + `stream::buffer_unordered`).
-- Phase 2: for codes in history but not in the recent typed set,
-  parallel-fetch `/api/v2/incidents/{code}.json` with concurrency
-  capped at `DETAIL_FETCH_CONCURRENCY = 8`. History months whose
-  last day falls before the 90-day cutoff are filtered out before
-  detail fetches issue.
-- All history calls are best-effort; failures don't fail the load.
+See [docs/statuspage-api.md](docs/statuspage-api.md) for the API surface,
+uptime math, and fetch strategy.
 
 ## Testing
 
 - `cargo check` — fast, run after every change.
 - `cargo clippy --all-targets -- -D warnings` — must be clean.
-- `cargo run -- --fixture tests/fixtures/summary.json` — end-to-end
-  manual test without network. Adjust the fixture to exercise edge cases
-  (missing fields, multi-day outages, scheduled maintenances).
+- `cargo test` — 15 tests across `bars::compute`, `services::cells_for_width`,
+  and banner rendering against a fixture.
+- `cargo run -- --fixture tests/fixtures/summary.json` — end-to-end manual
+  test without network.
 
-The project does not have automated tests yet. If you add behavior
-worthy of a regression test, prefer tests against `bars::compute` and the
-DTO deserializers — they're pure functions over data.
+Prefer tests against `bars::compute` and DTO deserializers — pure
+functions over data.
 
 ## Conventions
 
@@ -139,21 +120,40 @@ DTO deserializers — they're pure functions over data.
 
 - `features/*.feature` — Gherkin behavior specs (not executed).
 - `README.md` — user-facing install / usage / bindings.
+- [docs/statuspage-api.md](docs/statuspage-api.md) — Statuspage data model + fetch strategy.
 
 ## Current Focus
 
-The Statuspage-mirror milestone is closed. Within ~0.2 percentage
-points of Claude's published 90-day uptime numbers across all six
-services. Layout matches the web hierarchy: one 3-row block per
-service (name + status / full-width bar / axis with centered %).
-Detail modal sized to content; severity-tinted disruption banner
-when active incidents or scheduled maintenances are present.
+In rest state. The Statuspage-mirror milestone is closed; the UI and
+theme system have settled into the patterns below. Pick from the
+next-up candidates when starting a new arc.
 
-Next-up candidates (not in flight):
+### Crystallized invariants
 
-- Open the selected incident's `shortlink` in a browser via `o`
-  (adds the `open` crate; cross-platform spawn).
-- Memoize older history months across refreshes — they don't change,
-  re-fetching every 60s burns ~125 detail requests against a public
+- Skeletons mirror loaded layouts. New panes follow this — generic
+  shimmers are anti-pattern. See [src/ui/skeleton.rs](src/ui/skeleton.rs).
+- `services::pane_block` is the single entry point for pane chrome
+  (rounded border + focused/unfocused style + `pane_title` leader).
+- Theme tokens flow through [`AppTheme`](src/theme.rs) accessors;
+  raw `Color::Red`/`Color::Green` are forbidden.
+- Picker preview is debounced (`PREVIEW_DEBOUNCE`) — cursor and
+  applied diverge during a quiet window. Anything that mutates the
+  active theme outside the picker should still go through
+  `AppTheme::commit_preview` so persistence stays consistent.
+- The reducer in [src/app.rs](src/app.rs) is pure. I/O lives in
+  [src/events.rs](src/events.rs).
+- Loading state is `summary.is_none() || refreshing`. The `r` key
+  promotes via `App::begin_refresh`, which rewinds skeleton timing.
+
+### Next-up candidates
+
+- Open the selected incident's `shortlink` in a browser via `o` (adds
+  the `open` crate; cross-platform spawn).
+- Memoize older history months across refreshes — they don't change.
+  Re-fetching every 60s burns ~125 detail requests against a public
   endpoint with no rate-limit headers.
-- Filter incidents by name (`/`) — UI hint was removed; add the input.
+- Filter incidents by name (`/`) — needs an input widget; help screen
+  has no hint for it yet.
+- Theme sync with taho-admin: point at `~/.taho/settings.toml` instead
+  of `~/.taho/partly-claudy/settings.toml`. Requires a missing-name
+  fallback since the two apps' theme sets differ.

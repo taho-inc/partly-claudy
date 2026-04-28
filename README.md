@@ -1,10 +1,10 @@
-# claude-status
+# partly-claudy
 
 A terminal UI for the Claude status page — check Claude's operational status
 without leaving your terminal.
 
 ```
-┌─ claude-status ─────────────────── theme: SilkCircuit Neon · page 6h ago ──┐
+┌─ partly-claudy ─────────────────── theme: SilkCircuit Neon · page 6h ago ──┐
 │ ● All Systems Operational                                                   │
 │                                                                             │
 │  ┌─ ▶ Services ───────────────────────────────────────────────────────┐    │
@@ -63,10 +63,10 @@ cargo run --release
 ## Usage
 
 ```sh
-claude-status                                     # live data
-claude-status --fixture tests/fixtures/summary.json   # offline / demo
-claude-status --refresh 30                        # poll every 30s
-claude-status --base https://status.example.com   # any Statuspage tenant
+partly-claudy                                     # live data
+partly-claudy --fixture tests/fixtures/summary.json   # offline / demo
+partly-claudy --refresh 30                        # poll every 30s
+partly-claudy --base https://status.example.com   # any Statuspage tenant
 ```
 
 ## Key bindings

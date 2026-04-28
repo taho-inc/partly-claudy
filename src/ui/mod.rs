@@ -8,6 +8,7 @@ pub mod footer;
 pub mod header;
 pub mod help;
 pub mod modal;
+pub mod scroll;
 pub mod services;
 pub mod skeleton;
 pub mod theme_picker;
@@ -38,7 +39,12 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     }
 
     let body = centered(chunks[2], BODY_MAX_WIDTH);
-    let services_h = services::block_height(app.services().len()).min(body.height);
+    let count = if app.is_loading() {
+        services::SKELETON_ROWS as usize
+    } else {
+        app.services().len()
+    };
+    let services_h = services::block_height(count).min(body.height);
     let body_split =
         Layout::vertical([Constraint::Length(services_h), Constraint::Min(4)]).split(body);
     services::render(frame, body_split[0], app);

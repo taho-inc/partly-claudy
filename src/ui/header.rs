@@ -10,6 +10,25 @@ use crate::app::App;
 pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let columns = Layout::horizontal([Constraint::Min(20), Constraint::Length(48)]).split(area);
 
+    let title_line = Line::from(vec![Span::styled(
+        "partly-claudy",
+        Style::default()
+            .fg(app.theme.accent())
+            .add_modifier(Modifier::BOLD),
+    )]);
+    let subtitle_line = Line::from(vec![Span::styled(
+        "live uptime and incidents from status.claude.com",
+        Style::default().fg(app.theme.muted()),
+    )]);
+    frame.render_widget(Paragraph::new(vec![title_line, subtitle_line]), columns[0]);
+
+    frame.render_widget(
+        Paragraph::new(right_status(app)).right_aligned(),
+        columns[1],
+    );
+}
+
+fn right_status(app: &App) -> Vec<Line<'static>> {
     let (indicator_color, label) = match &app.summary {
         Some(s) => (
             app.theme.indicator_color(s.status.indicator),
@@ -17,19 +36,6 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         ),
         None => (app.theme.muted(), "Loading…".to_string()),
     };
-
-    let title_line = Line::from(vec![
-        Span::styled(
-            "claude-status ",
-            Style::default()
-                .fg(app.theme.accent())
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(
-            "· terminal status for claude.com",
-            Style::default().fg(app.theme.muted()),
-        ),
-    ]);
     let status_line = Line::from(vec![
         Span::styled(
             "● ",
@@ -44,22 +50,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD),
         ),
     ]);
-    frame.render_widget(Paragraph::new(vec![title_line, status_line]), columns[0]);
 
-    let right = right_status(app);
-    frame.render_widget(Paragraph::new(right).right_aligned(), columns[1]);
-}
-
-fn right_status(app: &App) -> Vec<Line<'static>> {
-    let theme_line = Line::from(vec![
-        Span::styled("theme: ", Style::default().fg(app.theme.muted())),
-        Span::styled(
-            app.theme.name.clone(),
-            Style::default().fg(app.theme.accent()),
-        ),
-        Span::raw("  "),
-        Span::styled("? help", Style::default().fg(app.theme.muted())),
-    ]);
     let updated = match app.summary.as_ref().map(|s| s.page.updated_at) {
         Some(t) => format!("page updated {}", relative(t)),
         None => "page updated never".to_string(),
@@ -68,7 +59,8 @@ fn right_status(app: &App) -> Vec<Line<'static>> {
         updated,
         Style::default().fg(app.theme.dim()),
     )]);
-    vec![theme_line, updated_line]
+
+    vec![status_line, updated_line]
 }
 
 fn relative(t: DateTime<Utc>) -> String {

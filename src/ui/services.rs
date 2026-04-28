@@ -1,7 +1,7 @@
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::Frame;
 
 use crate::api::{Component, ComponentStatus};
@@ -15,21 +15,23 @@ const INTER_ROW_GAP: u16 = 1;
 const FOCUS_PREFIX: &str = "▶ ";
 const NO_PREFIX: &str = "  ";
 
+/// Service rows reserved when the pane is rendering its loading
+/// skeleton. Matches the typical Statuspage tenant ('claude.ai',
+/// 'Claude Console', 'Claude API', 'Claude Code', 'Claude Cowork',
+/// 'Claude for Government') so the layout doesn't reflow on first
+/// data arrival.
+pub const SKELETON_ROWS: u16 = 6;
+
 pub fn render(frame: &mut Frame, area: Rect, app: &App) {
     let focused_pane = matches!(app.focus, Pane::Services);
-    let block = Block::default()
-        .title(pane_title(" Services ", focused_pane, &app.theme))
-        .borders(Borders::ALL)
-        .border_style(if focused_pane {
-            app.theme.focused_border()
-        } else {
-            app.theme.unfocused_border()
-        });
+    let block = pane_block(" Services ", focused_pane, &app.theme);
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
     if app.is_loading() {
-        skeleton::render_list(frame, inner, app, 6);
+        let n = app.services().len() as u16;
+        let n = if n == 0 { SKELETON_ROWS } else { n };
+        skeleton::render_services(frame, inner, app, n);
         return;
     }
 
@@ -81,15 +83,18 @@ fn render_service(
     comp: &Component,
     row: &UptimeRow,
 ) {
-    let row_focused = pane_focused && idx == app.service_idx;
+    // The "selected" service stays marked even when focus moves to the
+    // Incidents pane, since the incidents shown there are filtered by
+    // this selection.
+    let selected = idx == app.service_idx;
     let lines = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Length(1),
     ])
     .split(area);
-    render_name_row(frame, lines[0], app, row_focused, comp);
-    render_bar_row(frame, lines[1], app, row_focused, row);
+    render_name_row(frame, lines[0], app, selected, comp);
+    render_bar_row(frame, lines[1], app, pane_focused && selected, row);
     render_axis_row(frame, lines[2], app, row);
 }
 
@@ -249,25 +254,37 @@ pub fn block_height(n_services: usize) -> u16 {
         .saturating_add(2)
 }
 
+/// Standard pane chrome used by `services` and `timeline`: rounded
+/// border, focus-dependent border color, and a `pane_title` leader.
+pub fn pane_block(label: &str, focused: bool, theme: &AppTheme) -> Block<'static> {
+    Block::default()
+        .title(pane_title(label, focused, theme))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(if focused {
+            theme.focused_border()
+        } else {
+            theme.unfocused_border()
+        })
+}
+
 pub fn pane_title(label: &str, focused: bool, theme: &AppTheme) -> Line<'static> {
-    let mut spans = Vec::with_capacity(2);
+    let label_style = Style::default()
+        .fg(theme.text())
+        .add_modifier(Modifier::BOLD);
     if focused {
-        spans.push(Span::styled(
-            FOCUS_PREFIX,
-            Style::default()
-                .fg(theme.accent())
-                .add_modifier(Modifier::BOLD),
-        ));
+        Line::from(vec![
+            Span::styled(
+                " ▶ ",
+                Style::default()
+                    .fg(theme.accent())
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(label.trim_start().to_string(), label_style),
+        ])
     } else {
-        spans.push(Span::raw(NO_PREFIX));
+        Line::from(Span::styled(label.to_string(), label_style))
     }
-    spans.push(Span::styled(
-        label.to_string(),
-        Style::default()
-            .fg(theme.text())
-            .add_modifier(Modifier::BOLD),
-    ));
-    Line::from(spans)
 }
 
 fn label(s: ComponentStatus) -> &'static str {

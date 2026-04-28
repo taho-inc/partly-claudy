@@ -10,7 +10,7 @@ use futures::stream::{self, StreamExt};
 use serde::Deserialize;
 
 const DEFAULT_BASE: &str = "https://status.claude.com";
-const USER_AGENT: &str = concat!("claude-status/", env!("CARGO_PKG_VERSION"));
+const USER_AGENT: &str = concat!("partly-claudy/", env!("CARGO_PKG_VERSION"));
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Page {
